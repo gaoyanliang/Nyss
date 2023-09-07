@@ -3,12 +3,15 @@ package com.example.nsyy.common;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 import android.Manifest;
 
@@ -17,6 +20,7 @@ import java.util.List;
 
 public class GPSUtils {
 
+    private static final int OPEN_GPS_CODE = 1001;
     private static GPSUtils instance;
     private LocationManager locationManager;
 
@@ -37,16 +41,18 @@ public class GPSUtils {
         if (activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             //判断GPS是否开启，没有开启，则开启
-//            if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-//                //跳转到手机打开GPS页面
-//                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-//                //设置完成后返回原来的界面
-//                AppActivity.instance.startActivityForResult(intent,OPEN_GPS_CODE);
-//            }
+            if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                //跳转到手机打开GPS页面
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                //设置完成后返回原来的界面
+                activity.startActivityForResult(intent,OPEN_GPS_CODE);
+
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new NsyyLocationListener());
+            }
 //
-//            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);      // GPS芯片定位 需要开启GPS
+            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);      // GPS芯片定位 需要开启GPS
 //            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);      // 利用网络定位 需要开启GPS
-            location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);      // 其他应用使用定位更新了定位信息 需要开启GPS
+//            location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);      // 其他应用使用定位更新了定位信息 需要开启GPS
         }
 
         String p = "";
@@ -59,7 +65,7 @@ public class GPSUtils {
             p = getAddress(activity, location.getLatitude(),location.getLongitude());
             Log.i("GPS: ","location：" + p);
         } else {
-            Log.i("GPS: ", "获取位置信息失败，请检查是够开启GPS,是否授权");
+            Log.i("GPS: ", "获取位置信息失败，请检查是否开启GPS,是否授权");
         }
 
 
@@ -105,6 +111,31 @@ public class GPSUtils {
             return addressLines;
         }
         return "unknown address";
+    }
+
+
+
+    //位置监听器方法
+    class NsyyLocationListener implements LocationListener {
+        @Override
+        public void onLocationChanged(Location loc) {
+            // TODO Auto-generated method stub
+
+            Log.i("GPS: ", "位置信息更新");
+            Log.i("GPS: ", "经度："+loc.getLongitude());
+            Log.i("GPS: ","纬度："+loc.getLatitude());
+        }
+        @Override
+        public void onProviderDisabled(String provider) {
+            //当provider被用户关闭时调用
+            Log.i("GPS: ","GPS provider 被关闭！");
+        }
+        @Override
+        public void onProviderEnabled(String provider) {
+            //当provider被用户开启后调用
+            Log.i("GPS: ","GPS provider 被开启！");
+        }
+
     }
 }
 

@@ -42,6 +42,8 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
+    // webview 刷新
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 
     // 权限相关
     implementation 'com.github.getActivity:XXPermissions:18.3'
