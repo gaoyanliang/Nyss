@@ -89,7 +89,7 @@ public final class PermissionInterceptor implements IPermissionInterceptor {
                     return;
                 }
                 showPopupWindow(activity, decorView, message);
-            }, 300);
+            }, 2000);
         } else {
             // 注意：这里的 Dialog 只是示例，没有用 DialogFragment 来处理 Dialog 生命周期
             new AlertDialog.Builder(activity)

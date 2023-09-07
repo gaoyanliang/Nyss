@@ -19,10 +19,6 @@ public class GPSUtils {
 
     private static GPSUtils instance;
     private LocationManager locationManager;
-    public static final int LOCATION_CODE = 1000;
-    public static final int OPEN_GPS_CODE = 1001;
-
-    public  String province = "";
 
     public static GPSUtils getInstance() {
         if (instance == null) {
@@ -39,8 +35,7 @@ public class GPSUtils {
         Location location = null;
         // 是否已经授权
         if (activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED)
-        {
+                == PackageManager.PERMISSION_GRANTED) {
             //判断GPS是否开启，没有开启，则开启
 //            if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
 //                //跳转到手机打开GPS页面
@@ -55,8 +50,7 @@ public class GPSUtils {
         }
 
         String p = "";
-        if(location != null)
-        {
+        if(location != null) {
             Log.i("GPS: ", "获取位置信息成功");
             Log.i("GPS: ","经度：" + location.getLatitude());
             Log.i("GPS: ","纬度：" + location.getLongitude());
@@ -64,9 +58,7 @@ public class GPSUtils {
             // 获取地址信息
             p = getAddress(activity, location.getLatitude(),location.getLongitude());
             Log.i("GPS: ","location：" + p);
-        }
-        else
-        {
+        } else {
             Log.i("GPS: ", "获取位置信息失败，请检查是够开启GPS,是否授权");
         }
 
@@ -78,21 +70,41 @@ public class GPSUtils {
      * 根据经度纬度 获取国家，省份
      * */
     public String getAddress(Activity activity, double latitude, double longitude) {
-        String cityName = "";
         List<Address> addList = null;
-        Geocoder ge = new Geocoder(activity);
+
         try {
+            Geocoder ge = new Geocoder(activity);
             addList = ge.getFromLocation(latitude, longitude, 1);
         } catch (IOException e) {
+            Log.i("GPS: ", "获取定位信息有误！");
             e.printStackTrace();
         }
+
         if (addList != null && addList.size() > 0) {
-            for (int i = 0; i < addList.size(); i++) {
-                Address ad = addList.get(i);
-                cityName += ad.getCountryName() + " " + ad.getLocality();
-            }
+
+            Address address = addList.get(0);
+            //获取国家名称
+            String countryName = address.getCountryName();
+
+            //返回地址的国家代码，CN
+            String countryCode = address.getCountryCode();
+            Log.d("TAG", "getAddress: "+countryCode);
+
+            //对应的省或者市
+            String adminArea = address.getAdminArea();
+            //一个市对应的具体的区
+            String subLocality = address.getSubLocality();
+            //具体镇名加具体位置
+            String featureName = address.getFeatureName();
+            //返回一个具体的位置串，这个就不用进行拼接了。
+            String addressLines =address.getAddressLine(0);
+            String specificAddress = countryName + adminArea + subLocality + featureName;
+
+            Log.d("TAG", "addressLines: "+addressLines);
+            Log.d("TAG", "specificAddress: "+specificAddress);
+            return addressLines;
         }
-        return cityName;
+        return "unknown address";
     }
 }
 

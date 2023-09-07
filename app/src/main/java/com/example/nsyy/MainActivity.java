@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 
+import com.example.nsyy.common.GPSUtils;
 import com.example.nsyy.permission.NotificationMonitorService;
 import com.example.nsyy.permission.PermissionInterceptor;
 import com.example.nsyy.permission.PermissionNameConvert;
@@ -27,10 +28,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 申请定位权限
         findViewById(R.id.btn_main_request_location_permission).setOnClickListener(this);
+
+        // 获取位置信息
+        findViewById(R.id.btn_main_request_location).setOnClickListener(this);
+
+        // 申请通知权限
         findViewById(R.id.btn_main_request_notification_service_permission).setOnClickListener(this);
+
+        // 申请新版通知权限
         findViewById(R.id.btn_main_request_post_notification).setOnClickListener(this);
+
+        // 申请通知栏监听权限
         findViewById(R.id.btn_main_request_bind_notification_listener_permission).setOnClickListener(this);
+
+        // 跳转到应用详情页面
         findViewById(R.id.btn_main_start_permission_activity).setOnClickListener(this);
     }
 
@@ -57,6 +70,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     });
 
+        } else if (viewId == R.id.btn_main_request_location) {
+
+            // 判断是否已经获取位置权限，没有获取先获取位置权限
+            if (XXPermissions.isGranted(this, new String[] {
+                    Permission.ACCESS_COARSE_LOCATION,
+                    Permission.ACCESS_FINE_LOCATION,
+                    Permission.ACCESS_BACKGROUND_LOCATION
+            })) {
+
+                String location = GPSUtils.getInstance().getProvince(this);
+                toast(location);
+
+            } else {
+                toast("未获取位置权限,请先获取权限!");
+            }
+
         } else if (viewId == R.id.btn_main_request_notification_service_permission) {
 
             XXPermissions.with(this)
@@ -79,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             long delayMillis = 0;
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 delayMillis = 2000;
-                toast(getString(R.string.demo_android_13_post_notification_permission_hint));
+
             }
 
             view.postDelayed(new Runnable() {
