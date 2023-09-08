@@ -1,4 +1,4 @@
-package com.example.nsyy;
+package com.example.nsyy.permission;
 
 import android.app.Application;
 
