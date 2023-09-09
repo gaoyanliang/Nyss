@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item android:id="@+id/start"
+        android:title="@string/start_service"
+        android:icon="@drawable/ic_play_arrow"
+        app:showAsAction="always"/>
+
+    <item android:id="@+id/stop"
+        android:title="@string/stop_service"
+        android:icon="@drawable/ic_stop"
+        app:showAsAction="ifRoom"/>
+
+    <item android:id="@+id/exit"
+        android:title="@string/exit"
+        android:icon="@drawable/icons8_shutdown_96px_4"
+        app:showAsAction="never"/>
+</menu>

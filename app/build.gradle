@@ -2,6 +2,8 @@ plugins {
     id 'com.android.application'
 }
 
+apply plugin: 'com.yanzhenjie.andserver'
+
 android {
     namespace 'com.example.nsyy'
     compileSdk 33
@@ -60,4 +62,10 @@ dependencies {
 
     // 内存泄漏检测：https://github.com/square/leakcanary
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.12'
+
+    // AndServer： https://github.com/yanzhenjie/AndServer
+    implementation 'com.yanzhenjie.andserver:api:2.1.12'
+    annotationProcessor 'com.yanzhenjie.andserver:processor:2.1.12'
+
+    implementation 'com.google.code.gson:gson:2.8.5'
 }

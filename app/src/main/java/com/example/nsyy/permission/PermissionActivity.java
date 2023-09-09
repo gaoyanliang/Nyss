@@ -236,11 +236,6 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
         Toaster.show(text);
     }
 
-
-
-
-
-
     // ------------------- 位置信息获取相关 -------------------
 
     private void openGPS() {
@@ -309,28 +304,5 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
         } else {
             toast("获取位置信息有误，请重试");
         }
-    }
-
-
-    private class NsyyLocationListener implements LocationListener {
-        @Override
-        public void onLocationChanged(Location loc) {
-            Log.i("GPS: ", "位置信息更新");
-            Log.i("GPS: ", "经度："+loc.getLongitude());
-            Log.i("GPS: ","纬度："+loc.getLatitude());
-        }
-
-        @Override
-        public void onProviderDisabled(String provider) {
-            //当provider被用户关闭时调用
-            Log.i("GPS: ","GPS provider 被关闭！");
-        }
-
-        @Override
-        public void onProviderEnabled(String provider) {
-            //当provider被用户开启后调用
-            Log.i("GPS: ","GPS provider 被开启！");
-        }
-
     }
 }

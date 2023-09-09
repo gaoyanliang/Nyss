@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Nsyy</string>
+    <string name="start_service">start service</string>
+    <string name="stop_service">stop service</string>
+    <string name="exit">exit</string>
 
     <string name="demo_obtain_permission_success_hint">Obtained %s successfully</string>
     <string name="demo_return_activity_result_hint">Detected that you just returned from the permission settings interface</string>
