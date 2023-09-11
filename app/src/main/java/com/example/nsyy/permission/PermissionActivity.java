@@ -16,7 +16,6 @@ import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,7 +24,6 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 
-import com.example.nsyy.MainActivity;
 import com.example.nsyy.R;
 import com.hjq.permissions.OnPermissionCallback;
 import com.hjq.permissions.Permission;

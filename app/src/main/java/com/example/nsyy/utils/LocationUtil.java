@@ -75,10 +75,7 @@ public class LocationUtil {
         PermissionUtil.checkLocationPermission(mContext);
 
         Location location = null;
-
-        // 获取所有可用的位置提供器
-        List<String> providerList = locationManager.getProviders(true);
-        if (providerList.contains(LocationManager.GPS_PROVIDER)) {
+        if (gpsEnabled() && getGPSLocation(locationManager) != null) {
             //GPS 定位的精准度比较高，但是非常耗电。
             System.out.println("=====GPS_PROVIDER=====");
 
@@ -90,13 +87,13 @@ public class LocationUtil {
             // 就会调用 LocationListener 的 onLocationChanged() 方法，并把新的位置信息作为参数传入。
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
 
-        } else if (providerList.contains(LocationManager.NETWORK_PROVIDER)) {//Google服务被墙不可用
+        } else if (netWorkEnabled() && getNetWorkLocation(locationManager) != null) {//Google服务被墙不可用
             //网络定位的精准度稍差，但耗电量比较少。
             System.out.println("=====NETWORK_PROVIDER=====");
 
             //从网络获取经纬度
             location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 50000, 10, locationListener, Looper.getMainLooper());
         } else {
             System.out.println("=====NO_PROVIDER=====");
 //            throw new RuntimeException("没有开启位置服务,请先开启位置服务");
@@ -104,7 +101,39 @@ public class LocationUtil {
                 initGPS();
             }
         }
+
+        if (gpsEnabled()) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
+        }
+        if (netWorkEnabled()) {
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
+        }
+
         return getAddress(location);
+    }
+
+    private boolean gpsEnabled() {
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    private boolean netWorkEnabled() {
+        return locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+    }
+
+    private Location getGPSLocation(LocationManager locationManager) {
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        return locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+    }
+
+    private Location getNetWorkLocation(LocationManager locationManager) {
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        return locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
     }
 
     /**

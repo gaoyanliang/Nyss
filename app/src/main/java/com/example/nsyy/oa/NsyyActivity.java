@@ -12,8 +12,6 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import com.example.nsyy.R;
-import com.hjq.permissions.Permission;
-import com.hjq.permissions.XXPermissions;
 
 public class NsyyActivity extends AppCompatActivity {
 
