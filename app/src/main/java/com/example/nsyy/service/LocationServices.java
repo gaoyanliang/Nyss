@@ -24,6 +24,6 @@ public class LocationServices {
     }
 
     public String location(){
-        return LocationUtil.getInstance(activity).getLocation();
+        return LocationUtil.getInstance(activity).getLocation(true);
     }
 }
