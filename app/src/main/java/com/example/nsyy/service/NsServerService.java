@@ -1,22 +1,13 @@
 package com.example.nsyy.service;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
-import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 
 import com.example.nsyy.MainActivity;
-import com.example.nsyy.R;
 import com.example.nsyy.server.NsyyServerBroadcastReceiver;
 import com.example.nsyy.utils.NetUtils;
 import com.yanzhenjie.andserver.AndServer;
@@ -64,29 +55,29 @@ public class NsServerService extends Service {
                 })
                 .build();
 
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
-            NotificationChannel notificationChannel = new NotificationChannel("ns_service",
-                    "前台Service通知", NotificationManager.IMPORTANCE_DEFAULT);
-            notificationManager.createNotificationChannel(notificationChannel);
-        }
+//        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
+//            NotificationChannel notificationChannel = new NotificationChannel("ns_service",
+//                    "前台Service通知", NotificationManager.IMPORTANCE_DEFAULT);
+//            notificationManager.createNotificationChannel(notificationChannel);
+//        }
 
-        Intent intent=new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-        } else {
-            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE);
-        }
+//        Intent intent=new Intent(this, MainActivity.class);
+//        PendingIntent pendingIntent;
+//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+//            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+//        } else {
+//            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE);
+//        }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "ns_service");
-        builder.setContentTitle("Nsyy");
-        builder.setContentText("Nyss 服务器已经启动...");
-        builder.setSmallIcon(R.drawable.ic_play_arrow);
-        builder.setLargeIcon(BitmapFactory.decodeResource(getResources(),R.drawable.icons8_cat_96px_1));
-        builder.setContentIntent(pendingIntent);
-        Notification notification = builder.build();
-        startForeground(1,notification);
+//        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "ns_service");
+//        builder.setContentTitle("Nsyy");
+//        builder.setContentText("Nyss 服务器已经启动...");
+//        builder.setSmallIcon(R.drawable.ic_play_arrow);
+//        builder.setLargeIcon(BitmapFactory.decodeResource(getResources(),R.drawable.icons8_cat_96px_1));
+//        builder.setContentIntent(pendingIntent);
+//        Notification notification = builder.build();
+//        startForeground(1,notification);
     }
 
     @Override

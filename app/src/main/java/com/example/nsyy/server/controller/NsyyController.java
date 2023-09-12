@@ -1,11 +1,12 @@
 package com.example.nsyy.server.controller;
 
 import com.example.nsyy.service.LocationServices;
+import com.example.nsyy.service.NotificationServices;
 import com.yanzhenjie.andserver.annotation.GetMapping;
 import com.yanzhenjie.andserver.annotation.RestController;
 
 @RestController
-public class TestController {
+public class NsyyController {
 
     @GetMapping("/test")
     public String ping() {
@@ -18,6 +19,15 @@ public class TestController {
             return LocationServices.getInstance().location();
         } catch (Exception e) {
             return "Failed to get location: Please enable location service first";
+        }
+    }
+
+    @GetMapping("/notification")
+    public void notification() {
+        try {
+            NotificationServices.getInstance().notification();
+        } catch (Exception e) {
+
         }
     }
 }
