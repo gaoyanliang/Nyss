@@ -4,6 +4,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+/**
+ * 监听 web server 服务状态
+ */
 public class NsyyServerBroadcastReceiver extends BroadcastReceiver {
 
     private static final String ACTION = "NsyyServerBroadcastReceiver";

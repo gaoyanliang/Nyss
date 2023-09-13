@@ -28,7 +28,7 @@ public final class ServerConfig {
     }
 
     // 服务器端口
-    public static final int SERVER_PORT = 8080;
+    public static final int SERVER_PORT = 8081;
 
     // 服务器响应超时时间(秒）
     public static final int SERVER_TIMEOUT = 10;

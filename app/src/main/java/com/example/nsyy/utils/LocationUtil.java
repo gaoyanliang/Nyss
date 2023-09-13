@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Locale;
 
+/**
+ * 获取手机当前位置
+ */
 public class LocationUtil {
     private volatile static LocationUtil uniqueInstance;
     private LocationManager locationManager;
@@ -96,12 +99,12 @@ public class LocationUtil {
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 50000, 10, locationListener, Looper.getMainLooper());
         } else {
             System.out.println("=====NO_PROVIDER=====");
-//            throw new RuntimeException("没有开启位置服务,请先开启位置服务");
             if (turnOnGPS) {
                 initGPS();
             }
         }
 
+        // 由于第一次访问 getLastKnownLocation， 或者手机处于室内，或者信号不好 获取的 location 有可能为空，，所以需要主动去进行位置更新
         if (gpsEnabled()) {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
         }
@@ -169,9 +172,14 @@ public class LocationUtil {
                 }).show();
     }
 
+    /**
+     * 将 location 转换为具体地址 TODO 这里需要根据前端需求确定返回类型
+     * @param location
+     * @return
+     */
     private String getAddress(Location location) {
         if (location == null) {
-            return "unknow address";
+            return "unknown address";
         }
 
         //Geocoder通过经纬度获取具体信息

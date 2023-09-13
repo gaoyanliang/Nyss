@@ -42,10 +42,7 @@ import java.util.Random;
 public class MainActivity extends BaseActivity {
 
     private static final String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
-    private Toolbar toolbar;
     private WebView webView;
-    private ProgressDialog progressDialog;
-
     private SwipeRefreshLayout swipeRefreshLayout;
 
     private int version = Build.VERSION.SDK_INT;
@@ -55,14 +52,11 @@ public class MainActivity extends BaseActivity {
                 @Override
                 public void onStart(String hostAddress) {
                     Log.d(TAG, "Nsyy 服务器已经启动，地址为：" + hostAddress);
-                    toolbar.setSubtitle("http://" + hostAddress + ":8080");
                 }
 
                 @Override
                 public void onStop() {
                     Log.d(TAG, "Nsyy 服务器已经停止");
-                    toolbar.setSubtitle("服务已停止");
-                    progressDialog.dismiss();
                 }
 
                 @Override
@@ -87,15 +81,14 @@ public class MainActivity extends BaseActivity {
 
         // 检查权限: 这里需要开启位置权限 & 位置服务 TODO 其他权限
         PermissionUtil.checkLocationPermission(this);
-
         LocationServices.getInstance().setActivity(this);
+        LocationUtil.getInstance(this).initGPS();
 
         initView();
 
+        // 启动 web server
         registerReceiver(nsyyServerBroadcastReceiver, new IntentFilter("NsyyServerBroadcastReceiver"));
-        startService(new Intent(this, NsServerService.class));//启动服务
-
-        LocationUtil.getInstance(this).initGPS();
+        startService(new Intent(this, NsServerService.class));
 
         // 消息通知
         checkNotification(this);
@@ -105,24 +98,6 @@ public class MainActivity extends BaseActivity {
     }
 
     private void initView() {
-        // 导航栏
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setCancelable(false);
-        progressDialog.setMessage("正在停止服务...");
-        toolbar = findViewById(R.id.toolbar);
-        toolbar.setNavigationIcon(R.drawable.ic_chevron_left);
-        setSupportActionBar(toolbar);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (webView != null) {
-                    if (webView.canGoBack()) {
-                        webView.goBack();
-                    }
-                }
-            }
-        });
-
         swipeRefreshLayout = findViewById(R.id.refreshLayout);
         // 配置 SwipeRefreshLayout
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -153,28 +128,24 @@ public class MainActivity extends BaseActivity {
 
         // 确保跳转到另一个网页时仍然在当前 WebView 中显示,而不是调用浏览器打开
         webView.setWebViewClient(new WebViewClient() {
-
-//            @Override
-//            public WebResourceResponse shouldInterceptRequest(WebView view,
-//                                                              WebResourceRequest request) {
-//
-//                Log.i("Nsyy", "=========> rev request" + request.getUrl().toString());
-//                String requestUrl = request.getUrl().toString();
-//                Map<String, String> headers = request.getRequestHeaders();
-//
-//                if (requestUrl.contains("gm_clockin") && headers.get(HttpHeaders.Access_Control_Request_Method).equals(HttpMethod.POST.toString())) {
-//
-//                }
-//
-//                return shouldInterceptRequest(view, request.getUrl().toString());
-//            }
-
             public void onPageFinished(WebView view, String url) {
                 swipeRefreshLayout.setRefreshing(false);
             }
         });
-        // 加载指定网页
+        // 加载 南石OA
         webView.loadUrl(LOAD_RUL);
+    }
+
+    // 接管返回按键的响应
+    @Override
+    public void onBackPressed() {
+        // 如果 WebView 可以返回，则返回上一页
+        if (webView.canGoBack()) {
+            webView.goBack();
+            return;
+        }
+        // 否则退出应用程序
+        super.onBackPressed();
     }
 
     @Override
