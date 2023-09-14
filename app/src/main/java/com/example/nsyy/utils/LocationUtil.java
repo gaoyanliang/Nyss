@@ -16,12 +16,11 @@ import android.util.Log;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 
-import com.example.nsyy.R;
 import com.example.nsyy.permission.NsyyLocationListener;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**

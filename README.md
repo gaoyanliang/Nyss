@@ -199,3 +199,15 @@ public class NsyyController {
 
 - [Android获取应用通知栏权限，并跳转通知设置页面（全版本适配）](https://blog.csdn.net/aiynmimi/article/details/102740139)
 
+
+### 消息转换器 MessageConverter
+
+在使用 Andserver 提供的 web server 服务时，需要提供一个 MessageConverter 用来实现 "服务端 -> 客户端" & "客户端 -> 服务端" 消息的转换，否则服务端接收不到客户端发送的内容。
+
+- https://yanzhenjie.com/AndServer/annotation/RequestBody.html
+- https://yanzhenjie.com/AndServer/class/MessageConverter.html
+
+## APP 保活
+
+
+

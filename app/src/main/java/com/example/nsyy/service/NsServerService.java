@@ -1,13 +1,21 @@
 package com.example.nsyy.service;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 
 import com.example.nsyy.MainActivity;
+import com.example.nsyy.R;
 import com.example.nsyy.server.NsyyServerBroadcastReceiver;
 import com.example.nsyy.utils.NetUtils;
 import com.yanzhenjie.andserver.AndServer;
@@ -55,29 +63,34 @@ public class NsServerService extends Service {
                 })
                 .build();
 
-//        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-//        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
-//            NotificationChannel notificationChannel = new NotificationChannel("ns_service",
-//                    "前台Service通知", NotificationManager.IMPORTANCE_DEFAULT);
-//            notificationManager.createNotificationChannel(notificationChannel);
-//        }
 
-//        Intent intent=new Intent(this, MainActivity.class);
-//        PendingIntent pendingIntent;
-//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-//            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-//        } else {
-//            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE);
-//        }
+        /**
+         * 启动一个前台进程，提高自身优先级，尽量后台保活。 参考：https://blog.51cto.com/u_16099245/6603732
+         */
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
+            NotificationChannel notificationChannel = new NotificationChannel("high_channel_id",
+                    "南石医院", NotificationManager.IMPORTANCE_DEFAULT);
+            notificationManager.createNotificationChannel(notificationChannel);
+        }
 
-//        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "ns_service");
-//        builder.setContentTitle("Nsyy");
-//        builder.setContentText("Nyss 服务器已经启动...");
-//        builder.setSmallIcon(R.drawable.ic_play_arrow);
-//        builder.setLargeIcon(BitmapFactory.decodeResource(getResources(),R.drawable.icons8_cat_96px_1));
-//        builder.setContentIntent(pendingIntent);
-//        Notification notification = builder.build();
-//        startForeground(1,notification);
+        Intent intent=new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE);
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "high_channel_id");
+        builder.setContentTitle("南石医院");
+        builder.setContentText("欢迎使用南石医院 APP，祝您度过愉快的一天 (*￣︶￣)");
+        builder.setSmallIcon(R.drawable.ic_notifications_24);
+        //builder.setLargeIcon(BitmapFactory.decodeResource(getResources(),R.drawable.ic_hospital_24));
+        builder.setContentIntent(pendingIntent);
+        Notification notification = builder.build();
+
+        startForeground(1, notification);
     }
 
     @Override

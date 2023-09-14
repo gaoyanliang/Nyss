@@ -3,6 +3,8 @@ package com.example.nsyy.service;
 import android.app.Activity;
 
 import com.example.nsyy.MainActivity;
+import com.example.nsyy.server.api.request.Notification;
+import com.example.nsyy.utils.NotificationUtil;
 
 public class NotificationServices {
 
@@ -22,7 +24,8 @@ public class NotificationServices {
         this.activity = (MainActivity) activity;
     }
 
-    public void notification(){
-        activity.createNotificationForHigh("南石医院", MainActivity.getRandomString(100));
+    public void notification(Notification notification){
+//        NotificationUtil.getInstance(activity).createNotificationForHigh("南石医院", NotificationUtil.getRandomString(100));
+        NotificationUtil.getInstance(activity).createNotificationForHigh(notification.title, notification.context);
     }
 }
