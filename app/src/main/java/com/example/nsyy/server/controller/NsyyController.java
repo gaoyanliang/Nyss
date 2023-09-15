@@ -4,8 +4,8 @@ import static com.example.nsyy.server.api.response.ReturnData.ERROR.FAILED_TO_GE
 
 import com.example.nsyy.server.api.request.Notification;
 import com.example.nsyy.server.api.response.ReturnData;
-import com.example.nsyy.service.LocationServices;
-import com.example.nsyy.service.NotificationServices;
+import com.example.nsyy.utils.LocationUtil;
+import com.example.nsyy.utils.NotificationUtil;
 import com.yanzhenjie.andserver.annotation.GetMapping;
 import com.yanzhenjie.andserver.annotation.PostMapping;
 import com.yanzhenjie.andserver.annotation.RequestBody;
@@ -31,7 +31,7 @@ public class NsyyController {
     public ReturnData location() {
         ReturnData returnData = new ReturnData();
         try {
-            String address = LocationServices.getInstance().location();
+            String address = LocationUtil.getInstance().getLocation(true);
             returnData.setSuccess(true);
             returnData.setCode(200);
             returnData.setData(address);
@@ -39,7 +39,11 @@ public class NsyyController {
         } catch (Exception e) {
             returnData.setCode(FAILED_TO_GET_LOCATION);
             returnData.setSuccess(false);
-            returnData.setErrorMsg("Failed to get location: Please enable location service first");
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("LocationUtil: " + LocationUtil.getInstance().toString());
+
+            returnData.setErrorMsg("Failed to get location: Please enable location service first.\n" + sb.toString());
             return returnData;
         }
     }
@@ -51,14 +55,18 @@ public class NsyyController {
     public ReturnData notification(@RequestBody Notification notification) {
         ReturnData returnData = new ReturnData();
         try {
-            NotificationServices.getInstance().notification(notification);
+            NotificationUtil.getInstance().createNotificationForHigh(notification.title, notification.context);
             returnData.setSuccess(true);
             returnData.setCode(200);
             return returnData;
         } catch (Exception e) {
             returnData.setCode(FAILED_TO_GET_LOCATION);
             returnData.setSuccess(false);
-            returnData.setErrorMsg("Failed notification: Please try again later.");
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("NotificationUtil: " + NotificationUtil.getInstance().toString());
+
+            returnData.setErrorMsg("Failed notification: Please try again later." + sb.toString());
             return returnData;
         }
     }

@@ -16,8 +16,9 @@ import androidx.core.app.NotificationCompat;
 
 import com.example.nsyy.MainActivity;
 import com.example.nsyy.R;
-import com.example.nsyy.server.NsyyServerBroadcastReceiver;
+import com.example.nsyy.utils.LocationUtil;
 import com.example.nsyy.utils.NetUtils;
+import com.example.nsyy.utils.NotificationUtil;
 import com.yanzhenjie.andserver.AndServer;
 import com.yanzhenjie.andserver.Server;
 
@@ -25,6 +26,9 @@ import java.net.InetAddress;
 import java.util.concurrent.TimeUnit;
 
 public class NsServerService extends Service {
+
+    public NsServerService() {
+    }
 
     private Server server;
 
@@ -62,6 +66,9 @@ public class NsServerService extends Service {
                     }
                 })
                 .build();
+
+        LocationUtil.getInstance().setContext(this);
+        NotificationUtil.getInstance().setContext(this);
 
 
         /**

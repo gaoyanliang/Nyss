@@ -17,9 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 
 import com.example.nsyy.R;
-import com.example.nsyy.server.NsyyServerBroadcastReceiver;
-import com.example.nsyy.service.NotificationServices;
 import com.example.nsyy.service.NsServerService;
+import com.example.nsyy.service.NsyyServerBroadcastReceiver;
 
 import java.util.Random;
 
@@ -75,7 +74,7 @@ public class MessageActivity extends AppCompatActivity {
         registerReceiver(nsyyServerBroadcastReceiver, new IntentFilter("NsyyServerBroadcastReceiver"));
         startService(new Intent(this, NsServerService.class));//启动服务
 
-        NotificationServices.getInstance().setActivity(this);
+//        NotificationServices.getInstance().setActivity(this);
 
 
 

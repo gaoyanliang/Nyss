@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
 
+    <!-- ================ 消息通知相关权限 ================ -->
     <!--android 9.0上使用前台服务，需要添加权限-->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- 解锁屏幕需要的权限 -->
@@ -24,28 +25,32 @@
     <!-- 震动权限 -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
 
-<!--    &lt;!&ndash; 允许程序设置内置sd卡的写权限 &ndash;&gt;-->
-<!--    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> &lt;!&ndash; 允许程序获取网络状态 &ndash;&gt;-->
-<!--    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> &lt;!&ndash; 允许程序访问WiFi网络信息 &ndash;&gt;-->
-<!--    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> &lt;!&ndash; 允许程序读写手机状态和身份 &ndash;&gt;-->
-<!--    <uses-permission android:name="android.permission.READ_PHONE_STATE" /> &lt;!&ndash; 允许程序访问CellID或WiFi热点来获取粗略的位置 &ndash;&gt;-->
-<!--    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />-->
-<!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
-<!--    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />-->
-<!--    <uses-permission android:name="android.permission.RECORD_AUDIO" />-->
-<!--    <uses-permission android:name="android.permission.BODY_SENSORS" />-->
-<!--    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />-->
-<!--    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />-->
-<!--    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />-->
-<!--    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />-->
+    <!-- ================ 开机自启动权限 ================ -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
 
+    <!--    &lt;!&ndash; 允许程序设置内置sd卡的写权限 &ndash;&gt;-->
+    <!--    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> &lt;!&ndash; 允许程序获取网络状态 &ndash;&gt;-->
+    <!--    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> &lt;!&ndash; 允许程序访问WiFi网络信息 &ndash;&gt;-->
+    <!--    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> &lt;!&ndash; 允许程序读写手机状态和身份 &ndash;&gt;-->
+    <!--    <uses-permission android:name="android.permission.READ_PHONE_STATE" /> &lt;!&ndash; 允许程序访问CellID或WiFi热点来获取粗略的位置 &ndash;&gt;-->
+    <!--    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />-->
+    <!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
+    <!--    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />-->
+    <!--    <uses-permission android:name="android.permission.RECORD_AUDIO" />-->
+    <!--    <uses-permission android:name="android.permission.BODY_SENSORS" />-->
+    <!--    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />-->
+    <!--    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />-->
+    <!--    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />-->
+    <!--    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />-->
+
+
+<!--    android:installLocation="internalOnly"-->
     <application
         android:name=".permission.AppApplication"
         android:icon="@mipmap/ic_nsyy"
@@ -54,6 +59,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:requestLegacyExternalStorage="true"
         android:theme="@style/AppTheme"
+        android:installLocation="internalOnly"
         tools:ignore="UnusedAttribute">
 
         <meta-data
@@ -74,19 +80,40 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- 通知监听服务 -->
-        <service
-            android:name=".permission.NotificationMonitorService"
-            android:exported="false"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
+        </activity>
+
+        <!--        &lt;!&ndash; 通知监听服务(用于测试 permission 包中的权限功能使用) &ndash;&gt;-->
+        <!--        <service-->
+        <!--            android:name=".permission.NotificationMonitorService"-->
+        <!--            android:exported="false"-->
+        <!--            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">-->
+        <!--            <intent-filter>-->
+        <!--                <action android:name="android.service.notification.NotificationListenerService" />-->
+        <!--            </intent-filter>-->
+        <!--        </service>-->
+
         <service
             android:name=".service.NsServerService"
             android:enabled="true"
             android:exported="false" />
+
+<!--        android:directBootAware="true"-->
+<!--        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />-->
+<!--        <category android:name="android.intent.category.DEFAULT" />-->
+        <receiver
+            android:name=".service.NsyyServerBroadcastReceiver"
+            android:enabled="true"
+            android:directBootAware="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 注册定时任务 -->
+        <service android:name=".alarm.LongRunningService" >   </service>
+        <receiver android:name=".alarm.AlarmReceiver" >   </receiver>
+
     </application>
 
 </manifest>

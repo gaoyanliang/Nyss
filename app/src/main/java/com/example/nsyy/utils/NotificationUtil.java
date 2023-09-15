@@ -26,45 +26,54 @@ import java.util.Random;
 public class NotificationUtil {
     private static final String CHECK_OP_NO_THROW = "checkOpNoThrow";
     private static final String OP_POST_NOTIFICATION = "OP_POST_NOTIFICATION";
-
-    private NotificationManager notificationManager;
     // 重要消息
     private static final String mHighChannelId = "high_channel_id"; // 渠道ID可以随便定义，只要保证全局唯一性就可以
     private static final String mHignChannelName = "南石医院"; // 渠道名称是给用户看的，需要能够表达清楚这个渠道的用途
     public static final int mHighNotificationId = 9002;
 
+    private NotificationManager notificationManager;
     private volatile static NotificationUtil uniqueInstance;
-    private Context mContext;
+    private Context context;
+
+    public void setContext(Context context) {
+        this.context = context;
+        this.notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+    }
+
+    @Override
+    public String toString() {
+        return "NotificationUtil{" +
+                "notificationManager=" + notificationManager +
+                ", mContext=" + context +
+                '}';
+    }
 
     //采用Double CheckLock(DCL)实现单例
-    public static NotificationUtil getInstance(Context context) {
+    public static NotificationUtil getInstance() {
         if (uniqueInstance == null) {
             synchronized (NotificationUtil.class) {
                 if (uniqueInstance == null) {
-                    uniqueInstance = new NotificationUtil(context);
+                    uniqueInstance = new NotificationUtil();
                 }
             }
         }
         return uniqueInstance;
     }
 
-    private NotificationUtil(Context context) {
-        mContext = context;
-        notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+    private NotificationUtil() {
     }
 
     /**
      * 消息通知
      *
      * @param title
-     * @param context
      */
     public void createNotificationForHigh(String title, String message) {
         // 设置通知的点按操作
-        Intent intent = new Intent(mContext, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+        Intent intent = new Intent(context, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
-        Notification notification = new NotificationCompat.Builder(mContext, mHighChannelId)
+        Notification notification = new NotificationCompat.Builder(context, mHighChannelId)
                 // 通知标题
                 .setContentTitle(title)
                 // 通知内容
@@ -113,7 +122,7 @@ public class NotificationUtil {
         // 是否在桌面显示角标
         channel.setShowBadge(showDadge);
         // 获取 notificationManager
-        NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(NOTIFICATION_SERVICE);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
         // 注册 channel
         notificationManager.createNotificationChannel(channel);
     }

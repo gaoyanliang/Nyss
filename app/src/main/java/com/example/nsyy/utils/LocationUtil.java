@@ -19,7 +19,6 @@ import androidx.core.app.ActivityCompat;
 import com.example.nsyy.permission.NsyyLocationListener;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -29,17 +28,26 @@ import java.util.Locale;
 public class LocationUtil {
     private volatile static LocationUtil uniqueInstance;
     private LocationManager locationManager;
-    private Context mContext;
-    private static ArrayList<AddressCallback> addressCallbacks;
+    private Context context;
     private AddressCallback addressCallback;
-    public void setAddressCallback(AddressCallback addressCallback) {
-        this.addressCallback = addressCallback;
+    private NsyyLocationListener locationListener = new NsyyLocationListener();
+
+    @Override
+    public String toString() {
+        return "LocationUtil{" +
+                "locationManager=" + locationManager +
+                ", mContext=" + context +
+                ", addressCallback=" + addressCallback +
+                ", locationListener=" + locationListener +
+                '}';
     }
 
-    private NsyyLocationListener locationListener = new NsyyLocationListener();
-    
-    private LocationUtil(Context context) {
-        mContext = context;
+    private LocationUtil() {
+
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
         addressCallback = new LocationUtil.AddressCallback() {
             @Override
             public void onGetAddress(Address address) {
@@ -56,16 +64,15 @@ public class LocationUtil {
                 Log.e("定位经纬度: ",lat + "\n" + lng);
             }
         };
-        locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+        this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
     }
 
     //采用Double CheckLock(DCL)实现单例
-    public static LocationUtil getInstance(Context context) {
+    public static LocationUtil getInstance() {
         if (uniqueInstance == null) {
             synchronized (LocationUtil.class) {
                 if (uniqueInstance == null) {
-                    addressCallbacks = new ArrayList<>();
-                    uniqueInstance = new LocationUtil(context);
+                    uniqueInstance = new LocationUtil();
                 }
             }
         }
@@ -74,7 +81,7 @@ public class LocationUtil {
 
     public String getLocation(boolean turnOnGPS) {
         // 检查位置权限
-        PermissionUtil.checkLocationPermission(mContext);
+        PermissionUtil.checkLocationPermission(context);
 
         Location location = null;
         if (gpsEnabled() && getGPSLocation(locationManager) != null) {
@@ -123,16 +130,16 @@ public class LocationUtil {
     }
 
     private Location getGPSLocation(LocationManager locationManager) {
-        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return null;
         }
         return locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
     }
 
     private Location getNetWorkLocation(LocationManager locationManager) {
-        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return null;
         }
         return locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
@@ -152,7 +159,7 @@ public class LocationUtil {
      * 打开GPS对话框
      */
     private void openGPSDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("提示")
                 .setMessage("打开定位功能，可以提高定位精确度。 \n 请点击\"设置\"-\"定位服务\"-打开定位功能。")
                 .setPositiveButton("设置", new DialogInterface.OnClickListener() {
@@ -160,7 +167,7 @@ public class LocationUtil {
                     public void onClick(DialogInterface dialogInterface, int i) {
                         //跳转到手机打开GPS页面
                         Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                        mContext.startActivity(intent);
+                        context.startActivity(intent);
                     }
                 })
                 .setNeutralButton("取消", new DialogInterface.OnClickListener() {
@@ -182,7 +189,7 @@ public class LocationUtil {
         }
 
         //Geocoder通过经纬度获取具体信息
-        Geocoder gc = new Geocoder(mContext, Locale.getDefault());
+        Geocoder gc = new Geocoder(context, Locale.getDefault());
         try {
             List<Address> locationList = gc.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
 
@@ -208,32 +215,6 @@ public class LocationUtil {
             e.printStackTrace();
         }
         return null;
-    }
-
-    private void removeLocationUpdatesListener() {
-        if (locationManager != null) {
-            uniqueInstance = null;
-            locationManager.removeUpdates(locationListener);
-        }
-    }
-
-    /**
-     * 管理回调事件
-     * @param addressCallback
-     */
-    private void addAddressCallback(AddressCallback addressCallback){
-        addressCallbacks.add(addressCallback);
-    }
-
-    public void removeAddressCallback(AddressCallback addressCallback){
-        if(addressCallbacks.contains(addressCallback)){
-            addressCallbacks.remove(addressCallback);
-        }
-    }
-
-    public void cleareAddressCallback(){
-        removeLocationUpdatesListener();
-        addressCallbacks.clear();
     }
 
     public interface AddressCallback{

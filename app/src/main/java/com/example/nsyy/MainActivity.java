@@ -14,10 +14,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import com.example.nsyy.server.NsyyServerBroadcastReceiver;
-import com.example.nsyy.service.LocationServices;
-import com.example.nsyy.service.NotificationServices;
+import com.example.nsyy.alarm.LongRunningService;
 import com.example.nsyy.service.NsServerService;
+import com.example.nsyy.service.NsyyServerBroadcastReceiver;
 import com.example.nsyy.utils.LocationUtil;
 import com.example.nsyy.utils.NotificationUtil;
 import com.example.nsyy.utils.PermissionUtil;
@@ -56,9 +55,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 启动定时任务 每十分钟打印一次时间
+        Intent intent = new Intent(this, LongRunningService.class);
+        startService(intent);
+
         // 检查权限: 这里需要开启位置权限 & 位置服务 TODO 其他权限
         PermissionUtil.checkLocationPermission(this);
-        LocationServices.getInstance().setActivity(this);
 
         initView();
 
@@ -68,11 +70,12 @@ public class MainActivity extends AppCompatActivity {
 
         // 消息通知
         PermissionUtil.checkNotification(this);
-        NotificationUtil.getInstance(this).initNotificationChannel();
-        NotificationServices.getInstance().setActivity(this);
+        NotificationUtil.getInstance().setContext(this);
+        NotificationUtil.getInstance().initNotificationChannel();
 
         // 检查是否开启位置服务
-        LocationUtil.getInstance(this).initGPS();
+        LocationUtil.getInstance().setContext(this);
+        LocationUtil.getInstance().initGPS();
     }
 
     private void initView() {

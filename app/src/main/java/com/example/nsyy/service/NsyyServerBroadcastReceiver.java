@@ -1,8 +1,13 @@
-package com.example.nsyy.server;
+package com.example.nsyy.service;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.text.TextUtils;
+
+import androidx.core.content.ContextCompat;
+
+import com.example.nsyy.MainActivity;
 
 /**
  * 监听 web server 服务状态
@@ -10,6 +15,8 @@ import android.content.Intent;
 public class NsyyServerBroadcastReceiver extends BroadcastReceiver {
 
     private static final String ACTION = "NsyyServerBroadcastReceiver";
+
+    private static final String BOOT_COMPLETED_ACTION = "android.intent.action.BOOT_COMPLETED";
 
     private static final String CMD_KEY = "CMD_KEY";
     private static final String MESSAGE_KEY = "MESSAGE_KEY";
@@ -19,12 +26,19 @@ public class NsyyServerBroadcastReceiver extends BroadcastReceiver {
     private static final int CMD_VALUE_STOP = 4;
     private ServerStateListener serverStateListener;
 
+    public NsyyServerBroadcastReceiver() {
+    }
+
     public NsyyServerBroadcastReceiver(ServerStateListener serverStateListener) {
         this.serverStateListener = serverStateListener;
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (intent == null) {
+            return ;
+        }
+
         String action = intent.getAction();
         if (ACTION.equals(action)){
             int cmd = intent.getIntExtra(CMD_KEY, 0);
@@ -46,6 +60,15 @@ public class NsyyServerBroadcastReceiver extends BroadcastReceiver {
                     break;
                 default:
             }
+        } else if (TextUtils.equals(intent.getAction(), BOOT_COMPLETED_ACTION)) {
+            // 监听系统开机事件，实现开机自启动
+            Intent mainActivity = new Intent(context, MainActivity.class);
+            mainActivity.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(mainActivity);
+
+            Intent nsServerService = new Intent(context, NsServerService.class);
+            nsServerService.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startService(nsServerService);
         }
 
 
