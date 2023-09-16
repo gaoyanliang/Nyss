@@ -18,6 +18,13 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // 自定义打包名称
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "NsyyAPK_${buildType.name}_v${versionName}_${generateTime()}.apk"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -33,6 +40,11 @@ android {
         resolutionStrategy.force 'com.android.support:support-annotations:26.0.0'
     }
 
+}
+
+//构建时间
+def generateTime() {
+    return new Date().format("yyyy_MM_dd_HH_mm_ss")
 }
 
 dependencies {
