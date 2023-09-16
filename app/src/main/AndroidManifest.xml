@@ -29,9 +29,22 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-
     <!-- ================ 开机自启动权限 ================ -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!--悬浮窗-->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- ================ 蓝牙相关权限 ================ -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+<!--    &lt;!&ndash; 如果应用必须安装在支持蓝牙的设备上，可以将下面的required的值设置为true。&ndash;&gt;-->
+<!--    <uses-feature-->
+<!--        android:name="android.hardware.bluetooth_le"-->
+<!--        android:required="false" />-->
 
 
     <!--    &lt;!&ndash; 允许程序设置内置sd卡的写权限 &ndash;&gt;-->
@@ -40,7 +53,7 @@
     <!--    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> &lt;!&ndash; 允许程序读写手机状态和身份 &ndash;&gt;-->
     <!--    <uses-permission android:name="android.permission.READ_PHONE_STATE" /> &lt;!&ndash; 允许程序访问CellID或WiFi热点来获取粗略的位置 &ndash;&gt;-->
     <!--    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />-->
-    <!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
+
     <!--    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />-->
     <!--    <uses-permission android:name="android.permission.RECORD_AUDIO" />-->
     <!--    <uses-permission android:name="android.permission.BODY_SENSORS" />-->

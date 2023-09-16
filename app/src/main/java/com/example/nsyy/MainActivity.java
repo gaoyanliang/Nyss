@@ -17,6 +17,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.nsyy.alarm.LongRunningService;
 import com.example.nsyy.service.NsServerService;
 import com.example.nsyy.service.NsyyServerBroadcastReceiver;
+import com.example.nsyy.utils.BlueToothUtil;
 import com.example.nsyy.utils.LocationUtil;
 import com.example.nsyy.utils.NotificationUtil;
 import com.example.nsyy.utils.PermissionUtil;
@@ -76,6 +77,11 @@ public class MainActivity extends AppCompatActivity {
         // 检查是否开启位置服务
         LocationUtil.getInstance().setContext(this);
         LocationUtil.getInstance().initGPS();
+
+
+        // 检查是否开启蓝牙权限 & 初始化
+        PermissionUtil.checkBlueToothPermission(this);
+        BlueToothUtil.getInstance().init(this);
     }
 
     private void initView() {

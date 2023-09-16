@@ -88,6 +88,10 @@ public class ReturnData {
          */
         public static final int FAILED_NOTIFICATION = FAILED_TO_GET_LOCATION + 1;
 
+        /**
+         * 搜索蓝牙设备异常
+         */
+        public static final int FAILED_SEARCH_BLUETOOTH = FAILED_NOTIFICATION + 1;
 
     }
 }

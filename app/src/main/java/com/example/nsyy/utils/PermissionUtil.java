@@ -10,6 +10,7 @@ import android.provider.Settings;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 
+import com.example.nsyy.MainActivity;
 import com.example.nsyy.R;
 import com.example.nsyy.permission.PermissionInterceptor;
 import com.example.nsyy.permission.PermissionNameConvert;
@@ -21,6 +22,45 @@ import com.hjq.toast.Toaster;
 import java.util.List;
 
 public class PermissionUtil {
+
+    /**
+     * 检查蓝牙权限是否开启
+     *
+     * 注意： 旧版本的需要定位权限才能进行扫描蓝牙
+     * @param context
+     */
+    public static void checkBlueToothPermission(Context context) {
+
+//        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+//            toast(context.getString(R.string.demo_android_12_bluetooth_permission_hint));
+//        }
+
+        if (!XXPermissions.isGranted(context, new String[]{
+                Permission.BLUETOOTH_SCAN,
+                Permission.BLUETOOTH_CONNECT,
+                Permission.BLUETOOTH_ADVERTISE})) {
+
+            XXPermissions.with(context)
+                    .permission(Permission.BLUETOOTH_SCAN)
+                    .permission(Permission.BLUETOOTH_CONNECT)
+                    .permission(Permission.BLUETOOTH_ADVERTISE)
+                    .interceptor(new PermissionInterceptor())
+                    .request(new OnPermissionCallback() {
+
+                        @Override
+                        public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                            if (!allGranted) {
+                                return;
+                            }
+                            toast(String.format(context.getString(R.string.demo_obtain_permission_success_hint),
+                                    PermissionNameConvert.getPermissionString(context, permissions)));
+                        }
+                    });
+        }
+
+
+    }
+
     public static void checkLocationPermission(Context mContext) {
 
         /**
