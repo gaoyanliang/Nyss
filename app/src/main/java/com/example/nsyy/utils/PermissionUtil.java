@@ -10,7 +10,6 @@ import android.provider.Settings;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 
-import com.example.nsyy.MainActivity;
 import com.example.nsyy.R;
 import com.example.nsyy.permission.PermissionInterceptor;
 import com.example.nsyy.permission.PermissionNameConvert;
@@ -30,11 +29,6 @@ public class PermissionUtil {
      * @param context
      */
     public static void checkBlueToothPermission(Context context) {
-
-//        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-//            toast(context.getString(R.string.demo_android_12_bluetooth_permission_hint));
-//        }
-
         if (!XXPermissions.isGranted(context, new String[]{
                 Permission.BLUETOOTH_SCAN,
                 Permission.BLUETOOTH_CONNECT,
@@ -152,26 +146,6 @@ public class PermissionUtil {
         }
         context.startActivity(localIntent);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     public static void toast(CharSequence text) {
         Toaster.show(text);

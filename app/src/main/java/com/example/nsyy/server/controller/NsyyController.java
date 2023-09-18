@@ -1,6 +1,5 @@
 package com.example.nsyy.server.controller;
 
-import static com.example.nsyy.server.api.response.ReturnData.ERROR.FAILED_SEARCH_BLUETOOTH;
 import static com.example.nsyy.server.api.response.ReturnData.ERROR.FAILED_TO_GET_LOCATION;
 
 import com.example.nsyy.exception.BluetoothException;
@@ -10,7 +9,6 @@ import com.example.nsyy.utils.BlueToothUtil;
 import com.example.nsyy.utils.LocationUtil;
 import com.example.nsyy.utils.NotificationUtil;
 import com.yanzhenjie.andserver.annotation.GetMapping;
-import com.yanzhenjie.andserver.annotation.PathVariable;
 import com.yanzhenjie.andserver.annotation.PostMapping;
 import com.yanzhenjie.andserver.annotation.RequestBody;
 import com.yanzhenjie.andserver.annotation.RequestParam;
@@ -30,14 +28,15 @@ public class NsyyController {
         return returnData;
     }
 
-    @GetMapping("/connect")
+    @GetMapping("/get_weight")
     public ReturnData connectBlueTooth(@RequestParam("address") String address) {
         try {
             // 搜索蓝牙设备
-            String read = BlueToothUtil.getInstance().read(address);
+            String weight = BlueToothUtil.getInstance().read(address);
             ReturnData returnData = new ReturnData();
             returnData.setSuccess(true);
             returnData.setCode(200);
+            returnData.setData(weight);
             return returnData;
         } catch (BluetoothException e) {
             ReturnData returnData = new ReturnData();

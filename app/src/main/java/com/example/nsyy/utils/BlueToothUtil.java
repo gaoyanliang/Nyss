@@ -1,16 +1,12 @@
 package com.example.nsyy.utils;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.util.Log;
-
-import androidx.core.app.ActivityCompat;
 
 import com.example.nsyy.exception.BluetoothException;
 import com.hjq.permissions.Permission;
@@ -19,7 +15,6 @@ import com.hjq.permissions.XXPermissions;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Formatter;
 import java.util.UUID;
 
 public class BlueToothUtil {
@@ -60,118 +55,111 @@ public class BlueToothUtil {
 
 
     /**
-     * 字节转换为 16 进制字符串
-     *
-     * @param b 字节
-     * @return Hex 字符串
-     */
-    private static String byte2Hex(byte b) {
-        StringBuilder hex = new StringBuilder(Integer.toHexString(b));
-        if (hex.length() > 2) {
-            hex = new StringBuilder(hex.substring(hex.length() - 2));
-        }
-        while (hex.length() < 2) {
-            hex.insert(0, "0");
-        }
-        return hex.toString();
-    }
-
-
-    /**
-     * 字节数组转换为 16 进制字符串
-     *
-     * @param bytes 字节数组
-     * @return Hex 字符串
-     */
-    private static String byte2Hex(byte[] bytes) {
-        Formatter formatter = new Formatter();
-        for (byte b : bytes) {
-            formatter.format("%02x", b);
-        }
-        String hash = formatter.toString();
-        formatter.close();
-        return hash;
-    }
-
-
-    /**
      * 打印日志
      */
     private static void logD(String msg) {
-        if (mEnableLogOut) Log.d("BLEUTILS", msg);
+        Log.d(BLE_TAG, msg);
     }
 
 
-    // ================================== 测试方法
-
     @SuppressLint("MissingPermission")
     public String read(String... bluetoothDevicesMac) throws BluetoothException, IOException {
+        // 1. 根据蓝牙设备的 mac 地址，来获取蓝牙设备
         BluetoothDevice bluetoothDevice = getBluetoothDeviceByMac(bluetoothDevicesMac);
 
-        // 检查是否已经和蓝牙设备配对
+        // 2. 检查是否已经和蓝牙设备配对
         if (bluetoothDevice.getBondState() != BluetoothDevice.BOND_BONDED) {
             throw new BluetoothException("本设备还未和 " + bluetoothDevicesMac[0] + " 进行蓝牙配对，请先进行配对。");
         }
 
+        // 3. 连接蓝牙设备
         BluetoothSocket bluetoothSocket;
         try {
-//            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-//                throw new BluetoothException("未获取蓝牙权限，请先获取蓝牙权限");
-//            }
             bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
         } catch (IOException e) {
-            throw new BluetoothException("链接蓝牙设备异常：获取Socket失败。" + e.getMessage());
+            throw new BluetoothException("连接蓝牙设备异常：获取Socket失败。" + e.getMessage());
         }
 
         if (bluetoothSocket == null) {
-            throw new BluetoothException("链接蓝牙设备异常：获取Socket失败。");
+            throw new BluetoothException("连接蓝牙设备异常：获取Socket失败。");
         }
 
-
-        // 尝试连接
         try {
             // 等待连接，会阻塞线程
             bluetoothSocket.connect();
-            logD( "连接成功");
+            logD("成功连接蓝牙设备：mac address： " + bluetoothDevice.getAddress() +
+                    "device name: " + bluetoothDevice.getName());
         } catch (Exception connectException) {
-            bluetoothSocket.close();
+            close(bluetoothSocket, null, null);
             logD("连接失败:" + connectException.getMessage());
+            throw new BluetoothException("连接蓝牙设备异常：连接 Socket 失败。");
         }
 
 
-        // 开始监听数据接收
+        InputStream inputStream = null;
+        OutputStream outputStream = null;
+        // 4. 通过应答模式获取重量（向电子秤发送 R ，电子秤会返回当前重量）
         boolean isRunning = true;
-        byte[] result = new byte[0];
+        byte[] sendData = "R".getBytes();
+        byte[] result = null;
         try {
-            // 通过向电子秤发送 "R" 来获取重量
-            byte[] sendMsg = "R".getBytes();
-            OutputStream outputStream = bluetoothSocket.getOutputStream();
-            outputStream.write(sendMsg);
+            outputStream = bluetoothSocket.getOutputStream();
+            outputStream.write(sendData);
 
-            InputStream inputStream = bluetoothSocket.getInputStream();
+            inputStream = bluetoothSocket.getInputStream();
             while (isRunning) {
                 // 等待有数据
-                byte[] buffer = new byte[102400];
-                synchronized (this){
+                byte[] buffer = new byte[1024];
+                synchronized (this) {
                     int bytes = inputStream.read(buffer);
                     if (bytes > 0) {
-                        final byte[] data = new byte[bytes];
-                        System.arraycopy(buffer, 0, data, 0, bytes);
-                        logD("服务端收到客户端发送的数据：" + new String(data));
-
+                        result = new byte[bytes];
+                        System.arraycopy(buffer, 0, result, 0, bytes);
+                        logD("接收到电子秤发送的数据：" + new String(result));
                     } else {
-                        logD("服务端收到客户端发送的数据：null");
+                        logD("接收到电子秤发送的数据：null");
                     }
                 }
 
-//                if (inputStream.available() == 0) {
-//                    break;
-//                }
+                if (inputStream.available() == 0) {
+                    break;
+                }
             }
         } catch (Exception e) {
+            close(bluetoothSocket, inputStream, outputStream);
             throw new BluetoothException("接收数据失败： " + e.getMessage());
+        } finally {
+            close(bluetoothSocket, inputStream, outputStream);
         }
-        return new String(result);
+        return converterWeight(new String(result));
+    }
+
+    /**
+     * 关闭资源: BluetoothSocket, InputStream, OutputStream
+     */
+    public void close(BluetoothSocket socket, InputStream inputStream, OutputStream outputStream)
+            throws BluetoothException {
+        try {
+            if (inputStream != null){
+                inputStream.close();
+            }
+        } catch (IOException e) {
+            throw new BluetoothException("资源关闭失败：" + e.getMessage());
+        }
+        try {
+            if (outputStream != null){
+                outputStream.close();
+            }
+        } catch (IOException e) {
+            throw new BluetoothException("资源关闭失败：" + e.getMessage());
+        }
+        try {
+            if (socket != null){
+                socket.close();
+            }
+        } catch (IOException e) {
+            throw new BluetoothException("资源关闭失败：" + e.getMessage());
+        }
     }
 
 
@@ -179,8 +167,9 @@ public class BlueToothUtil {
      * 根据蓝牙设备的 mac 地址，来获取蓝牙设备
      * @return
      */
+    @SuppressLint("MissingPermission")
     private BluetoothDevice getBluetoothDeviceByMac(String... bluetoothDevicesMac) throws BluetoothException {
-        // 1. 获取蓝牙权限（已在MainActivity启动时获取）
+        // 1. 校验蓝牙权限（已在MainActivity启动时获取）
         if (!XXPermissions.isGranted(mContext, new String[]{
                 Permission.BLUETOOTH_SCAN,
                 Permission.BLUETOOTH_CONNECT,
@@ -188,23 +177,39 @@ public class BlueToothUtil {
             throw new BluetoothException("未获取蓝牙权限，请先获取蓝牙权限");
         }
 
-        // 2. 打开蓝牙
+        // 2.检查是否打开蓝牙
         if (!mBluetoothAdapter.isEnabled()) {
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             mContext.startActivity(intent);
-            //mContext.startActivityForResult(intent, requestCode);
-
-            // mBluetoothAdapter.isEnabled();
         }
 
         // 3. 根据 mac 地址获取蓝牙设备
         BluetoothDevice remoteDevice = BluetoothAdapter.getDefaultAdapter()
                 .getRemoteDevice(bluetoothDevicesMac[0]);
         if (remoteDevice == null) {
-            throw new BluetoothException("通过 " + bluetoothDevicesMac[0] + " 未获取任何蓝牙设备，请输入正确的 mac 地址。");
+            throw new BluetoothException("通过 " + bluetoothDevicesMac[0] + " 未获取任何蓝牙设备，请检查输入的 mac 地址是否正确。");
         }
 
         return remoteDevice;
     }
 
+    /**
+     * 将电子秤返回过来的重量数据，转换为正常数据
+     * 电子秤返回的数据格式：
+     * - "ST,NT,-  66.66kg\r\n"
+     * - "US,NT,-  66660 g\r\n"
+     * @param weightFromElectronicWeigher
+     * @return
+     */
+    private String converterWeight(String weightFromElectronicWeigher) {
+        // 1. 去除多余空格 & \r\n
+        weightFromElectronicWeigher = weightFromElectronicWeigher.replaceAll("\r", "");
+        weightFromElectronicWeigher = weightFromElectronicWeigher.replaceAll("\n", "");
+        weightFromElectronicWeigher = weightFromElectronicWeigher.replace(" ", "");
+
+        // 2. 通过 , 将字符串分段
+        String[] split = weightFromElectronicWeigher.split(",");
+
+        return split[2];
+    }
 }

@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.text.TextUtils;
 
-import androidx.core.content.ContextCompat;
-
 import com.example.nsyy.MainActivity;
 
 /**
