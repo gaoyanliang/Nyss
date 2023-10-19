@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="scan_tip">将码放入取景框，即可自动扫描</string>
+    <string name="title">扫码</string>
+    <string name="scan_showresult">扫码结果会在屏幕中直接展示</string>
+
+
+
     <string name="app_name">南石医院</string>
     <string name="start_service">启动服务</string>
     <string name="stop_service">停止服务</string>

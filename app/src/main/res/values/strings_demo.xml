@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="scan_tip">Place the code within the frame</string>
+    <string name="title">Scan</string>
+    <string name="scan_showresult">Scan results will show on screen</string>
+
+
+
     <string name="app_name" translatable="false">Nsyy</string>
     <string name="start_service">start service</string>
     <string name="stop_service">stop service</string>
