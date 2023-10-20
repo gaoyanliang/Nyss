@@ -1,6 +1,8 @@
 package com.example.nsyy.code_scan;
 
 
+import static com.example.nsyy.code_scan.common.CodeScanCommon.*;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -66,10 +68,10 @@ public class CommonActivity extends Activity  {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_common);
-        mode = getIntent().getIntExtra(MainActivity.DECODE_MODE, defaultValue);
+        mode = getIntent().getIntExtra(DECODE_MODE, defaultValue);
         mscanArs = findViewById(R.id.scan_ars);
         mscanTips = findViewById(R.id.scan_tip);
-        if (mode == MainActivity.MULTIPROCESSOR_ASYN_CODE || mode == MainActivity.MULTIPROCESSOR_SYN_CODE){
+        if (mode == MULTIPROCESSOR_ASYN_CODE || mode == MULTIPROCESSOR_SYN_CODE){
             mscanArs.setVisibility(View.INVISIBLE);
             mscanTips.setText(R.string.scan_showresult);
             AlphaAnimation disappearAnimation = new AlphaAnimation(1, 0);
@@ -140,7 +142,7 @@ public class CommonActivity extends Activity  {
         backBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mode == MainActivity.MULTIPROCESSOR_ASYN_CODE || mode == MainActivity.MULTIPROCESSOR_SYN_CODE){
+                if (mode == MULTIPROCESSOR_ASYN_CODE || mode == MULTIPROCESSOR_SYN_CODE){
                     setResult(RESULT_CANCELED);
                 }
                 CommonActivity.this.finish();
@@ -150,7 +152,7 @@ public class CommonActivity extends Activity  {
 
     @Override
     public void onBackPressed() {
-        if (mode == MainActivity.MULTIPROCESSOR_ASYN_CODE || mode == MainActivity.MULTIPROCESSOR_SYN_CODE){
+        if (mode == MULTIPROCESSOR_ASYN_CODE || mode == MULTIPROCESSOR_SYN_CODE){
             setResult(RESULT_CANCELED);
         }
         CommonActivity.this.finish();
@@ -216,11 +218,11 @@ public class CommonActivity extends Activity  {
         }
         try {
             // Image-based scanning mode
-            if (mode == MainActivity.BITMAP_CODE) {
+            if (mode == BITMAP_CODE) {
                 decodeBitmap(MediaStore.Images.Media.getBitmap(this.getContentResolver(), data.getData()), HmsScan.ALL_SCAN_TYPE);
-            } else if (mode == MainActivity.MULTIPROCESSOR_SYN_CODE) {
+            } else if (mode == MULTIPROCESSOR_SYN_CODE) {
                 decodeMultiSyn(MediaStore.Images.Media.getBitmap(this.getContentResolver(), data.getData()));
-            } else if (mode == MainActivity.MULTIPROCESSOR_ASYN_CODE) {
+            } else if (mode == MULTIPROCESSOR_ASYN_CODE) {
                 decodeMultiAsyn(MediaStore.Images.Media.getBitmap(this.getContentResolver(), data.getData()));
             }
         } catch (Exception e) {

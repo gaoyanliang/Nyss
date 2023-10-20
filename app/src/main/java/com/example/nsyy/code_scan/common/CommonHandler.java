@@ -17,7 +17,6 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
 
-import com.example.nsyy.MainActivity;
 import com.example.nsyy.code_scan.CommonActivity;
 import com.huawei.hmf.tasks.OnFailureListener;
 import com.huawei.hmf.tasks.OnSuccessListener;
@@ -31,6 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 import static android.app.Activity.RESULT_OK;
+import static com.example.nsyy.code_scan.common.CodeScanCommon.*;
 
 public final class CommonHandler extends Handler {
 
@@ -54,7 +54,7 @@ public final class CommonHandler extends Handler {
                 if (msg == null) {
                     return;
                 }
-                if (mode == MainActivity.BITMAP_CODE || mode == MainActivity.MULTIPROCESSOR_SYN_CODE) {
+                if (mode == BITMAP_CODE || mode == MULTIPROCESSOR_SYN_CODE) {
                     HmsScan[] result = decodeSyn(msg.arg1, msg.arg2, (byte[]) msg.obj, activity, HmsScan.ALL_SCAN_TYPE, mode);
                     if (result == null || result.length == 0) {
                         restart(DEFAULT_ZOOM);
@@ -70,7 +70,7 @@ public final class CommonHandler extends Handler {
                         restart(DEFAULT_ZOOM);
                     }
                 }
-                if (mode == MainActivity.MULTIPROCESSOR_ASYN_CODE) {
+                if (mode == MULTIPROCESSOR_ASYN_CODE) {
                     decodeAsyn(msg.arg1, msg.arg2, (byte[]) msg.obj, activity, HmsScan.ALL_SCAN_TYPE);
                 }
             }
@@ -84,10 +84,10 @@ public final class CommonHandler extends Handler {
      */
     private HmsScan[] decodeSyn(int width, int height, byte[] data, final Activity activity, int type, int mode) {
         Bitmap bitmap = convertToBitmap(width, height, data);
-        if (mode == MainActivity.BITMAP_CODE) {
+        if (mode == BITMAP_CODE) {
             HmsScanAnalyzerOptions options = new HmsScanAnalyzerOptions.Creator().setHmsScanTypes(type).setPhotoMode(false).create();
             return ScanUtil.decodeWithBitmap(activity, bitmap, options);
-        } else if (mode == MainActivity.MULTIPROCESSOR_SYN_CODE) {
+        } else if (mode == MULTIPROCESSOR_SYN_CODE) {
             MLFrame image = MLFrame.fromBitmap(bitmap);
             HmsScanAnalyzerOptions options = new HmsScanAnalyzerOptions.Creator().setHmsScanTypes(type).create();
             HmsScanAnalyzer analyzer = new HmsScanAnalyzer(options);;
@@ -156,7 +156,7 @@ public final class CommonHandler extends Handler {
             intent.putExtra(CommonActivity.SCAN_RESULT, (HmsScan[]) message.obj);
             activity.setResult(RESULT_OK, intent);
             //Show the scanning result on the screen.
-            if (mode == MainActivity.MULTIPROCESSOR_ASYN_CODE || mode == MainActivity.MULTIPROCESSOR_SYN_CODE) {
+            if (mode == MULTIPROCESSOR_ASYN_CODE || mode == MULTIPROCESSOR_SYN_CODE) {
                 CommonActivity commonActivity = (CommonActivity) activity;
 
                 HmsScan[] arr = (HmsScan[]) message.obj;

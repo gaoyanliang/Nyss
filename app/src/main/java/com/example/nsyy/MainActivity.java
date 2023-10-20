@@ -44,7 +44,7 @@ import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    
+
     public static final String TAG = "Nsyy";
     //private static final String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
     // 测试扫码功能
