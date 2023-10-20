@@ -269,6 +269,132 @@ Android 中暂时没有做到和 IOS 同样的想过，主要因为目前蓝牙�
 ```
 
 
+扫码功能不能通过 AndServer 来提供，需要配合前端来使用。
+
+通过调研，发现 web view 支持响应前端的 JS，并且 web view 也可以直接调用前端的 JS 方法，具体的使用方法如下：
+
+前端需要提供如下 JS 方法：
+
+```js
+// 调用扫码功能 （前端主动调用）
+// 主要方法名 ‘scanCode’ 需要和 app 中注册的 js 方法名保持一致
+function scancodeWithAndroid() {
+    // Call the Android method to start scanning
+    AndroidInterface.scanCode();
+}
+
+// 处理扫码返回值（由app调用，app 扫码完成之后，主动调用）
+// 注意必须使用 window.method 的方式注册接受返回值方法，否则 app 找不到对应的方法
+// 主要方法名 receiveScanResult 需要和 app 中调用的 js 方法名保持一致
+window.receiveScanResult = function(data) {
+    alert(data)
+    message.value = data
+    document.getElementById("data").value = data ;
+    
+    return 'scan code: ' + data;
+}
+```
+
+app 中需要先注册对应的 js 方法
+
+```java
+public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // ...
+        initView();
+        // ...
+    }
+
+    private void initView() {
+
+        // ...
+        webView = findViewById(R.id.webView);
+
+        // Enable Javascript
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        // 设置允许JS弹窗
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+        // 设置 WebView 允许执行 JavaScript 脚本
+        webSettings.setJavaScriptEnabled(true);
+
+        // Add the JavaScriptInterface to the WebView
+        webView.addJavascriptInterface(this, "AndroidInterface");
+
+        // 重写 javascript 的 alert 和 confirm 函数,弹窗界面更美观。
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onJsAlert(WebView view, String url, String message, final JsResult result) {
+                AlertDialog.Builder b = new AlertDialog.Builder(MainActivity.this);
+                b.setTitle("Alert");
+                b.setMessage(message);
+                b.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        result.confirm();
+                    }
+                });
+                b.setCancelable(false);
+                b.create().show();
+                return true;
+            }
+
+            //设置响应js 的Confirm()函数
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message, final JsResult result) {
+                AlertDialog.Builder b = new AlertDialog.Builder(MainActivity.this);
+                b.setTitle("Confirm");
+                b.setMessage(message);
+                b.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        result.confirm();
+                    }
+                });
+                b.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        result.cancel();
+                    }
+                });
+                b.create().show();
+                return true;
+            }
+        });
+
+        webView.loadUrl(LOAD_RUL);
+    }
+
+}
+```
+
+当扫码完成之后，app 通过如下方式直接调用前端 JS 方法
+
+```java
+try {
+    String js = "javascript:receiveScanResult('" + retValue + "')";
+    System.out.println("开始执行 JS 方法：" + js);
+
+    webView.evaluateJavascript(js, new ValueCallback<String>() {
+        @Override
+        public void onReceiveValue(String s) {
+            System.out.println("成功接收到扫码返回值：" + s);
+        }
+    });
+} catch (Exception e) {
+    System.out.println("未成功调用 JS 方法 handleScanResult");
+    e.printStackTrace();
+    // Handle the exception
+}
+```
+
+
+
 ## APP 保活 & 自启动
 
 Android 中由于太过开放，并没有提供统一的，可靠的保活&自启动实现，只能通过不同的方式来尽力实现，并不保证在所有设备上的效果相同。
