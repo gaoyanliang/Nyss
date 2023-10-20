@@ -1,5 +1,7 @@
 package com.example.nsyy;
 
+import static com.example.nsyy.code_scan.common.CodeScanCommon.*;
+
 import android.Manifest;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -42,23 +44,7 @@ import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-
-    /**
-     * Define requestCode.
-     */
-    public static final int CAMERA_REQ_CODE = 111;
-    public static final int DEFINED_CODE = 222;
-    public static final int BITMAP_CODE = 333;
-    public static final int MULTIPROCESSOR_SYN_CODE = 444;
-    public static final int MULTIPROCESSOR_ASYN_CODE = 555;
-    public static final int DECODE = 1;
-    public static final int GENERATE = 2;
-    private static final int REQUEST_CODE_SCAN_ONE = 0X01;
-    private static final int REQUEST_CODE_DEFINE = 0X0111;
-    private static final int REQUEST_CODE_SCAN_MULTI = 0X011;
-    public static final String DECODE_MODE = "decode_mode";
-    public static final String RESULT = "SCAN_RESULT";
-
+    
     public static final String TAG = "Nsyy";
     //private static final String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
     // 测试扫码功能
@@ -317,6 +303,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
      */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         if (permissions == null || grantResults == null) {
             return;
         }
