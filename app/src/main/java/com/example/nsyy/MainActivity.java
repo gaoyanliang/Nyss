@@ -32,6 +32,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.nsyy.alarm.LongRunningService;
 import com.example.nsyy.code_scan.CommonActivity;
 import com.example.nsyy.code_scan.DefinedActivity;
+import com.example.nsyy.config.MySharedPreferences;
 import com.example.nsyy.service.NsServerService;
 import com.example.nsyy.service.NsyyServerBroadcastReceiver;
 import com.example.nsyy.utils.BlueToothUtil;
@@ -46,9 +47,9 @@ import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
 
     public static final String TAG = "Nsyy";
-    //private static final String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
+    private static final String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
     // 测试扫码功能
-    private static final String LOAD_RUL = "https://dnswc2-vue-demo.site.laf.dev/";
+    //private static final String LOAD_RUL = "https://dnswc2-vue-demo.site.laf.dev/";
     private WebView webView;
     private SwipeRefreshLayout swipeRefreshLayout;
 
@@ -104,6 +105,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // 检查是否开启蓝牙权限 & 初始化
         PermissionUtil.checkBlueToothPermission(this);
         BlueToothUtil.getInstance().init(this);
+
+        MySharedPreferences.init(this);
     }
 
     private void initView() {

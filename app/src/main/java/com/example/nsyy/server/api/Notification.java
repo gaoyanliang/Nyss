@@ -1,4 +1,4 @@
-package com.example.nsyy.server.api.request;
+package com.example.nsyy.server.api;
 
 public class Notification {
 

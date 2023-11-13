@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.nsyy.server.api.response;
+package com.example.nsyy.server.api;
 
 import com.alibaba.fastjson.annotation.JSONField;
 
@@ -21,16 +21,23 @@ import com.alibaba.fastjson.annotation.JSONField;
 public class ReturnData {
 
     @JSONField(name = "isSuccess")
-    private boolean isSuccess;
+    public boolean isSuccess;
 
     @JSONField(name = "code")
-    private int code;
+    public int code;
 
     @JSONField(name = "errorMsg")
-    private String errorMsg;
+    public String errorMsg;
 
     @JSONField(name = "data")
-    private Object data;
+    public Object data;
+
+    public ReturnData(boolean isSuccess, int code, String errorMsg, Object data) {
+        this.isSuccess = isSuccess;
+        this.code = code;
+        this.errorMsg = errorMsg;
+        this.data = data;
+    }
 
     public ReturnData() {
     }
@@ -66,6 +73,17 @@ public class ReturnData {
     public void setData(Object data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "ReturnData{" +
+                "isSuccess=" + isSuccess +
+                ", code=" + code +
+                ", errorMsg='" + errorMsg + '\'' +
+                ", data=" + data +
+                '}';
+    }
+
 
 
     /**
