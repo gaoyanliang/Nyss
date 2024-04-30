@@ -122,9 +122,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         PermissionUtil.checkLocationPermission(this);
 
         // 消息通知
-        PermissionUtil.checkNotification(this);
-        NotificationUtil.getInstance().setContext(this);
-        NotificationUtil.getInstance().initNotificationChannel();
+//        PermissionUtil.checkNotification(this);
+//        NotificationUtil.getInstance().setContext(this);
+//        NotificationUtil.getInstance().initNotificationChannel();
 
         FileHelper.getInstance().setContext(this);
 
@@ -168,7 +168,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                         // Load the selected website
                         loadWebsite(which);
                     }
-                });
+                })
+                .setCancelable(false); // 设置为不可取消;
 
         // Create and show the alert dialog
         AlertDialog alertDialog = builder.create();

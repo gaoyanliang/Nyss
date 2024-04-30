@@ -1,16 +1,23 @@
 <resources>
     <string-array name="websites">
-        <item>http://192.168.3.12:6060</item>
-<!--        <item>http://192.168.124.22:5173/</item>-->
-<!--        <item>http://192.168.124.14:6060/</item>-->
-        <item>http://oa.nsyy.com.cn:6060</item>
-<!--        <item>http://192.168.124.9:8083/</item>-->
+<!--        &lt;!&ndash; 内网 &ndash;&gt;-->
+<!--        <item>http://192.168.3.12:6060</item>-->
+<!--        &lt;!&ndash; 外网 &ndash;&gt;-->
+<!--        <item>http://oa.nsyy.com.cn:6060</item>-->
+
+        <!--        <item>http://192.168.124.22:5173/</item>-->
+        <!--        <item>http://192.168.124.14:6060/</item>-->
+        <!--        <item>http://192.168.124.9:8083/</item>-->
+
+        <!-- 综合预约诊室排队信息 -->
+        <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=1#/</item>
+        <!-- 综合预约大厅排队信息 -->
+        <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=2#/</item>
         <!-- Add more websites as needed -->
     </string-array>
 
     <array name="website_choices">
-        <item>护理 PDA</item>
-        <item>手机</item>
-        <!-- Add more choices as needed -->
+        <item>综合预约诊室展示</item>
+        <item>综合预约大厅展示</item>
     </array>
 </resources>
