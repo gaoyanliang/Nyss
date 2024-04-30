@@ -120,9 +120,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         MySharedPreferences.init(this);
 
         // 消息通知
-//        PermissionUtil.checkNotification(this);
-//        NotificationUtil.getInstance().setContext(this);
-//        NotificationUtil.getInstance().initNotificationChannel();
+        PermissionUtil.checkNotification(this);
+        NotificationUtil.getInstance().setContext(this);
+        NotificationUtil.getInstance().initNotificationChannel();
 
         FileHelper.getInstance().setContext(this);
 
