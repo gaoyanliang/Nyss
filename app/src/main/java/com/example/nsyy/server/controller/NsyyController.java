@@ -63,27 +63,27 @@ public class NsyyController {
      * TODO 待确定具体地址格式
      * @return
      */
-    @CrossOrigin(methods = {RequestMethod.GET})
-    @GetMapping("/location")
-    public ReturnData location() {
-        ReturnData returnData = new ReturnData();
-        try {
-            String address = LocationUtil.getInstance().getLocation(true);
-            returnData.setSuccess(true);
-            returnData.setCode(200);
-            returnData.setData(address);
-            return returnData;
-        } catch (Exception e) {
-            returnData.setCode(FAILED_TO_GET_LOCATION);
-            returnData.setSuccess(false);
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("LocationUtil: " + LocationUtil.getInstance().toString());
-
-            returnData.setErrorMsg("Failed to get location: Please enable location service first.\n" + sb.toString());
-            return returnData;
-        }
-    }
+//    @CrossOrigin(methods = {RequestMethod.GET})
+//    @GetMapping("/location")
+//    public ReturnData location() {
+//        ReturnData returnData = new ReturnData();
+//        try {
+//            String address = LocationUtil.getInstance().getLocation(true);
+//            returnData.setSuccess(true);
+//            returnData.setCode(200);
+//            returnData.setData(address);
+//            return returnData;
+//        } catch (Exception e) {
+//            returnData.setCode(FAILED_TO_GET_LOCATION);
+//            returnData.setSuccess(false);
+//
+//            StringBuilder sb = new StringBuilder();
+//            sb.append("LocationUtil: " + LocationUtil.getInstance().toString());
+//
+//            returnData.setErrorMsg("Failed to get location: Please enable location service first.\n" + sb.toString());
+//            return returnData;
+//        }
+//    }
 
     /**
      * TODO 待确定具体消息格式

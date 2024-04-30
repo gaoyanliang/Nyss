@@ -118,8 +118,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         AppVersionUtil.getInstance().init(this);
         MySharedPreferences.init(this);
-        // 检查权限: 这里需要开启位置权限 & 位置服务
-        PermissionUtil.checkLocationPermission(this);
 
         // 消息通知
 //        PermissionUtil.checkNotification(this);
@@ -128,13 +126,15 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         FileHelper.getInstance().setContext(this);
 
-        // 检查是否开启位置服务
-        LocationUtil.getInstance().setContext(this);
-        LocationUtil.getInstance().initGPS();
+//        // 检查权限: 这里需要开启位置权限 & 位置服务
+//        PermissionUtil.checkLocationPermission(this);
+//        // 检查是否开启位置服务
+//        LocationUtil.getInstance().setContext(this);
+//        LocationUtil.getInstance().initGPS();
 
-        // 检查是否开启蓝牙权限 & 初始化
-        PermissionUtil.checkBlueToothPermission(this);
-        BlueToothUtil.getInstance().init(this);
+//        // 检查是否开启蓝牙权限 & 初始化
+//        PermissionUtil.checkBlueToothPermission(this);
+//        BlueToothUtil.getInstance().init(this);
 
         // 初始化 WebView
         webView = findViewById(R.id.webView);
