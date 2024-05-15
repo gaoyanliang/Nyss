@@ -2,10 +2,12 @@ package com.example.nsyy;
 
 import android.Manifest;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -17,27 +19,24 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.format.DateFormat;
+import android.util.Base64;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.ValueCallback;
 import android.widget.Toast;
-import androidx.core.app.ActivityOptionsCompat;
-
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
-import android.util.Base64;
 
 import com.example.nsyy.alarm.LongRunningService;
 import com.example.nsyy.config.MySharedPreferences;
@@ -45,15 +44,15 @@ import com.example.nsyy.message.FileHelper;
 import com.example.nsyy.service.NsServerService;
 import com.example.nsyy.service.NsyyServerBroadcastReceiver;
 import com.example.nsyy.utils.AppVersionUtil;
-import com.example.nsyy.utils.BlueToothUtil;
-import com.example.nsyy.utils.LocationUtil;
 import com.example.nsyy.utils.NotificationUtil;
 import com.example.nsyy.utils.PermissionUtil;
-
 import com.example.nsyy.vivo_scan.VivoQRCodeScanActivity;
 import com.huawei.hms.hmsscankit.ScanUtil;
 import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
+import com.iflytek.cloud.SpeechConstant;
+import com.iflytek.cloud.SpeechSynthesizer;
+import com.iflytek.cloud.SpeechUtility;
 import com.king.camera.scan.CameraScan;
 
 import java.io.ByteArrayOutputStream;
@@ -118,6 +117,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         AppVersionUtil.getInstance().init(this);
         MySharedPreferences.init(this);
+
+        // 初始化讯飞语音引擎
+        SpeechUtility.createUtility(this, SpeechConstant.APPID + "=9de29f32");
 
         // 消息通知
         PermissionUtil.checkNotification(this);

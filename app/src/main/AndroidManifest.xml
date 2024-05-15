@@ -45,6 +45,7 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" /> <!-- 相机权限 -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <uses-feature android:name="android.hardware.camera.autofocus" />
     <uses-feature android:name="android.hardware.camera" />
@@ -68,6 +69,8 @@
         <activity
             android:name=".vivo_scan.VivoQRCodeScanActivity"
             android:exported="false" />
+
+        <meta-data android:name="com.iflytek.appid" android:value="9de29f32" />
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
