@@ -109,7 +109,7 @@ public class NsyyController {
         }
     }
 
-    @CrossOrigin(methods = {RequestMethod.GET})
+    @CrossOrigin(methods = {RequestMethod.POST})
     @PostMapping(path = "/speech")
     public ReturnData speech(@RequestBody Notification notification) {
         ReturnData returnData = new ReturnData();
