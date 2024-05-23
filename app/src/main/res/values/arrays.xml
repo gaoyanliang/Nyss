@@ -13,11 +13,24 @@
         <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=1#/</item>
         <!-- 综合预约大厅排队信息 -->
         <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=2#/</item>
-        <!-- Add more websites as needed -->
+        <!-- 综合预约医生信息展示 -->
+        <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=3#/</item>
+
+        <!-- 综合预约诊室排队信息 -->
+        <item>http://192.168.124.14:9527/?type=20&amp;id=1#/</item>
+        <!-- 综合预约大厅排队信息 -->
+        <item>http://192.168.124.14:9527/?type=20&amp;id=2#/</item>
+        <!-- 综合预约医生信息展示 -->
+        <item>http://192.168.124.14:9527/?type=20&amp;id=3#/</item>
     </string-array>
 
     <array name="website_choices">
-        <item>综合预约诊室展示</item>
-        <item>综合预约大厅展示</item>
+        <item>正式-综合预约诊室展示</item>
+        <item>正式-综合预约大厅展示</item>
+        <item>正式-门诊楼大厅展示</item>
+
+        <item>测试-综合预约诊室展示</item>
+        <item>测试-综合预约大厅展示</item>
+        <item>测试-门诊楼大厅展示</item>
     </array>
 </resources>
