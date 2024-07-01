@@ -88,7 +88,7 @@ public class NsyyController {
     /**
      * TODO 待确定具体消息格式
      */
-    @CrossOrigin(methods = {RequestMethod.GET})
+    @CrossOrigin(methods = {RequestMethod.POST})
     @PostMapping(path = "/notification")
     public ReturnData notification(@RequestBody Notification notification) {
         ReturnData returnData = new ReturnData();
@@ -109,7 +109,7 @@ public class NsyyController {
         }
     }
 
-    @CrossOrigin(methods = {RequestMethod.GET})
+    @CrossOrigin(methods = {RequestMethod.POST})
     @PostMapping(path = "/speech")
     public ReturnData speech(@RequestBody Notification notification) {
         ReturnData returnData = new ReturnData();

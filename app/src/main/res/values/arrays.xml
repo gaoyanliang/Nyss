@@ -1,16 +1,18 @@
 <resources>
     <string-array name="websites">
         <item>http://192.168.3.12:6060</item>
-<!--        <item>http://192.168.124.22:5173/</item>-->
 <!--        <item>http://192.168.124.14:6060/</item>-->
+        <item>http://192.168.124.22:5173/</item>
         <item>http://oa.nsyy.com.cn:6060</item>
+
 <!--        <item>http://192.168.124.9:8083/</item>-->
         <!-- Add more websites as needed -->
     </string-array>
 
     <array name="website_choices">
         <item>护理 PDA</item>
-        <item>手机</item>
+        <item>手机-测试环境</item>
+        <item>手机-正式环境</item>
         <!-- Add more choices as needed -->
     </array>
 </resources>
