@@ -58,9 +58,9 @@ public class NotificationUtil {
                 } else {
                     Log.i(TAG, "Initialization succeeded");
                     // 设置参数
-                    mTts.setParameter(SpeechConstant.VOICE_NAME, "xiaoyan");
-                    mTts.setParameter(SpeechConstant.SPEED, "50");
-                    mTts.setParameter(SpeechConstant.VOLUME, "80");
+                    mTts.setParameter(SpeechConstant.VOICE_NAME, "xiaoyu");
+                    mTts.setParameter(SpeechConstant.SPEED, "40");
+                    mTts.setParameter(SpeechConstant.VOLUME, "90");
                     mTts.setParameter(SpeechConstant.ENGINE_TYPE, SpeechConstant.TYPE_CLOUD);
                 }
             }

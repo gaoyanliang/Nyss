@@ -51,7 +51,6 @@ import com.huawei.hms.hmsscankit.ScanUtil;
 import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
 import com.iflytek.cloud.SpeechConstant;
-import com.iflytek.cloud.SpeechSynthesizer;
 import com.iflytek.cloud.SpeechUtility;
 import com.king.camera.scan.CameraScan;
 
@@ -61,6 +60,9 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     public static final int DEFAULT_VIEW = 0x22;
@@ -80,6 +82,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     private String manufacturer = Build.MANUFACTURER;
     private String model = Build.MODEL;
+
+    private static final Integer INTERVAL_TWO_MINUTES = 2 * 60; // 2分钟
+
+    private ScheduledExecutorService scheduler;
+
 
     private final BroadcastReceiver noticeReceiver = new BroadcastReceiver() {
         @Override
@@ -159,6 +166,28 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 注册广播接收器
         registerReceiver(noticeReceiver, new IntentFilter("LOAD_TARGET_PAGE"));
+
+
+        Integer interval = MySharedPreferences.getSharedPreferences().getInt("interval", 0);
+        if (interval == 0) {
+            interval = INTERVAL_TWO_MINUTES;
+        }
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // 你的请求逻辑
+                        String info = MySharedPreferences.getSharedPreferences().getString("speech_info", "");
+                        if (!info.isEmpty()) {
+                            NotificationUtil.getInstance().speechInfo(info);
+                        }
+                    }
+                });
+            }
+        }, 0, interval, TimeUnit.SECONDS);
     }
 
 

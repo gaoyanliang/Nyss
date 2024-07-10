@@ -6,6 +6,7 @@ import com.example.nsyy.config.MySharedPreferences;
 import com.example.nsyy.exception.BluetoothException;
 import com.example.nsyy.server.api.AppInfo;
 import com.example.nsyy.server.api.Notification;
+import com.example.nsyy.server.api.SpeechInfo;
 import com.example.nsyy.server.api.UserInfo;
 import com.example.nsyy.server.api.ReturnData;
 import com.example.nsyy.utils.AppVersionUtil;
@@ -249,5 +250,51 @@ public class NsyyController {
             return new AppInfo(false, 500, e.getMessage(), -1.0, "android");
         }
     }
+
+
+
+    @CrossOrigin(methods = {RequestMethod.GET})
+    @GetMapping("/speech_info")
+    public ReturnData get_speech_info() {
+        ReturnData returnData = new ReturnData();
+        try {
+            String info = MySharedPreferences.getSharedPreferences().getString("speech_info", "");
+            Integer interval = MySharedPreferences.getSharedPreferences().getInt("interval", 0);
+            SpeechInfo speechInfo = new SpeechInfo(info, interval);
+            returnData.setSuccess(true);
+            returnData.setCode(200);
+            returnData.setData(speechInfo);
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(FAILED_TO_GET_LOCATION);
+            returnData.setSuccess(false);
+            returnData.setErrorMsg("info is null");
+            return returnData;
+        }
+    }
+
+    @CrossOrigin(methods = {RequestMethod.POST})
+    @PostMapping(path = "/speech_info")
+    public ReturnData set_speech_info(@RequestBody SpeechInfo speechInfo) {
+        ReturnData returnData = new ReturnData();
+        try {
+            // Storing a setting
+            SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
+            editor.putString("speech_info", speechInfo.getInfo());
+            editor.putInt("interval", speechInfo.getInterval());
+            editor.apply();
+
+            returnData.setSuccess(true);
+            returnData.setCode(200);
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(FAILED_TO_GET_LOCATION);
+            returnData.setSuccess(false);
+
+            returnData.setErrorMsg("speech info save failed");
+            return returnData;
+        }
+    }
+
 
 }
