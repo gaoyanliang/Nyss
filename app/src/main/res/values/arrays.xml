@@ -10,18 +10,18 @@
         <!--        <item>http://192.168.124.9:8083/</item>-->
 
         <!-- 综合预约诊室排队信息 -->
-        <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=1#/</item>
+        <item>http://oa.nsyy.com.cn:6060/index1.html?DLAWIAXTSA=kC0BF0SfJCNGTxZe&amp;id=1#/</item>
         <!-- 综合预约大厅排队信息 -->
-        <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=2#/</item>
+        <item>http://oa.nsyy.com.cn:6060/index1.html?DLAWIAXTSA=kC0BF0SfJCNGTxZe&amp;id=2#/</item>
         <!-- 综合预约医生信息展示 -->
-        <item>http://oa.nsyy.com.cn:6060/index1.html?type=20&amp;id=3#/</item>
+        <item>http://oa.nsyy.com.cn:6060/index1.html?DLAWIAXTSA=kC0BF0SfJCNGTxZe&amp;id=3#/</item>
 
         <!-- 综合预约诊室排队信息 -->
-        <item>http://192.168.124.14:9527/?type=20&amp;id=1#/</item>
+        <item>http://192.168.124.14:9527/?DLAWIAXTSA=kC0BF0SfJCNGTxZe&amp;id=1#/</item>
         <!-- 综合预约大厅排队信息 -->
-        <item>http://192.168.124.14:9527/?type=20&amp;id=2#/</item>
+        <item>http://192.168.124.14:9527/?DLAWIAXTSA=kC0BF0SfJCNGTxZe&amp;id=2#/</item>
         <!-- 综合预约医生信息展示 -->
-        <item>http://192.168.124.14:9527/?type=20&amp;id=3#/</item>
+        <item>http://192.168.124.14:9527/?DLAWIAXTSA=kC0BF0SfJCNGTxZe&amp;id=3#/</item>
     </string-array>
 
     <array name="website_choices">

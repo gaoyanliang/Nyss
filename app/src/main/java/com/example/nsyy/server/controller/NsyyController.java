@@ -6,6 +6,7 @@ import com.example.nsyy.config.MySharedPreferences;
 import com.example.nsyy.exception.BluetoothException;
 import com.example.nsyy.server.api.AppInfo;
 import com.example.nsyy.server.api.Notification;
+import com.example.nsyy.server.api.UrlInfo;
 import com.example.nsyy.server.api.UserInfo;
 import com.example.nsyy.server.api.ReturnData;
 import com.example.nsyy.utils.AppVersionUtil;
@@ -235,6 +236,33 @@ public class NsyyController {
             returnData.setSuccess(false);
 
             returnData.setErrorMsg("The load_url delete failed");
+            return returnData;
+        }
+    }
+
+
+    @CrossOrigin(methods = {RequestMethod.POST})
+    @PostMapping(path = "/load_url")
+    public ReturnData post_load_url(@RequestBody UrlInfo urlInfo) {
+        ReturnData returnData = new ReturnData();
+        try {
+
+            // Storing a setting
+            SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
+            editor.remove("load_url");
+            editor.commit();
+
+            editor.putString("load_url", urlInfo.url);
+            editor.apply();
+
+            returnData.setSuccess(true);
+            returnData.setCode(200);
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(FAILED_TO_GET_LOCATION);
+            returnData.setSuccess(false);
+
+            returnData.setErrorMsg("The load_url put failed");
             return returnData;
         }
     }
