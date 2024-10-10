@@ -2,6 +2,7 @@ package com.example.nsyy.utils;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
 
+import com.example.nsyy.config.MySharedPreferences;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.AppOpsManager;
@@ -14,6 +15,7 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
@@ -43,20 +45,30 @@ public class NotificationUtil {
     public void setContext(Context context) {
         this.context = context;
         this.notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        this.textToSpeech = new TextToSpeech(context, new TextToSpeech.OnInitListener() {
-
-            @Override
-            public void onInit(int status) {
-                if (status == TextToSpeech.SUCCESS) {
-                    // 设置语言为默认语言
-                    int result = textToSpeech.setLanguage(Locale.getDefault());
-
-                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        Toast.makeText(context, "Language not supported", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Toast.makeText(context, "Initialization failed", Toast.LENGTH_SHORT).show();
+        this.textToSpeech = new TextToSpeech(context, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                int result = textToSpeech.setLanguage(Locale.SIMPLIFIED_CHINESE);
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Toast.makeText(context, "本设备不支持简体中文语音播报", Toast.LENGTH_SHORT).show();
                 }
+
+                boolean find = false;
+                Float rate = MySharedPreferences.getSharedPreferences().getFloat("rate", 1.3f);
+                String name = MySharedPreferences.getSharedPreferences().getString("name", "xiaozhang");
+                for (Voice voice : textToSpeech.getVoices()) {
+                    if (voice.getName().contains(name) && (voice.getLocale().equals(Locale.CHINESE) || voice.getLocale().equals(Locale.SIMPLIFIED_CHINESE))) {
+                        textToSpeech.setVoice(voice);
+                        textToSpeech.setSpeechRate(rate);
+                        find = true;
+                        Toast.makeText(context, "Speech Initialization successed", Toast.LENGTH_SHORT).show();
+                        break;
+                    }
+                }
+                if (find == false) {
+                    Toast.makeText(context, "没有找到名字是 " + name + " 的语音播报人", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(context, "Initialization failed", Toast.LENGTH_SHORT).show();
             }
         });
     }

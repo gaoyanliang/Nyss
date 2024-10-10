@@ -512,3 +512,24 @@ private void bringWebViewActivityToFront() {
         startActivity(intent);
         }
 ```
+
+
+## android 语音播报
+
+使用 MultiTTS  https://bbs.tatans.cn/search?keyword=MultiTTS
+
+使用版本 1.2.9， 更高版本在 android 屏幕中闪退，无法使用
+语音包使用 语音包1
+
+默认使用： 语音播报人 xiaozhang ， 语速 1.3f
+
+
+安装之后：
+
+1. 设置关闭优化电源设置
+2. 开启通知保活
+3. 导入语音包 1
+4. 设置默认 TTS 引擎为 MultiTTS
+5. 
+
+
