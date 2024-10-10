@@ -6,6 +6,7 @@ import com.example.nsyy.config.MySharedPreferences;
 import com.example.nsyy.exception.BluetoothException;
 import com.example.nsyy.server.api.AppInfo;
 import com.example.nsyy.server.api.Notification;
+import com.example.nsyy.server.api.SpeechInfo;
 import com.example.nsyy.server.api.UrlInfo;
 import com.example.nsyy.server.api.UserInfo;
 import com.example.nsyy.server.api.ReturnData;
@@ -277,5 +278,59 @@ public class NsyyController {
             return new AppInfo(false, 500, e.getMessage(), -1.0, "android");
         }
     }
+
+
+    @CrossOrigin(methods = {RequestMethod.GET})
+    @GetMapping("/speech_info")
+    public SpeechInfo get_speech_info() {
+        try {
+            // Retrieving user info
+            Float rate = MySharedPreferences.getSharedPreferences().getFloat("rate", 0);
+            String name = MySharedPreferences.getSharedPreferences().getString("name", "");
+            String locale = MySharedPreferences.getSharedPreferences().getString("locale", "");
+            System.out.println("get speech info rate: " + rate.toString() + " name: " + name + " locale: " + locale);
+            return new SpeechInfo(rate, name, locale);
+        } catch (Exception e) {
+            return new SpeechInfo(0, "", "");
+        }
+    }
+
+    @CrossOrigin(methods = {RequestMethod.POST})
+    @PostMapping(path = "/speech_info")
+    public ReturnData save_speech_info(@RequestBody SpeechInfo speechInfo) {
+        ReturnData returnData = new ReturnData();
+        try {
+            float rate = 1.0f;
+            String name = "xinghe";
+            String locale = "zh";
+
+            if (speechInfo != null) {
+                rate = speechInfo.getRate();
+                name = speechInfo.getName();
+                locale = speechInfo.getLocale();
+            }
+
+            // Storing a setting
+            SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
+            editor.putFloat("rate", rate);
+            editor.putString("name", name);
+            editor.putString("locale", locale);
+            editor.apply();
+
+            System.out.println("save speech info rate: " + rate + " name: " + name + " locale: " + locale);
+
+            returnData.setSuccess(true);
+            returnData.setCode(200);
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(FAILED_TO_GET_LOCATION);
+            returnData.setSuccess(false);
+
+            returnData.setErrorMsg("save failed");
+            return returnData;
+        }
+    }
+
+
 
 }

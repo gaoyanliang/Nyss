@@ -3,10 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools">
     <!-- 允许程序打开网络套接字 -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" /> <!-- ================ 获取位置需要的权限 ================ -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- ================ 获取位置需要的权限 ================ -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> <!-- ================ 消息通知相关权限 ================ -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ================ 消息通知相关权限 ================ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <queries>
         <intent>
@@ -19,9 +23,13 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" /> <!-- ================ 开机自启动权限 ================ -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- ================ 开机自启动权限 ================ -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- ================ 蓝牙相关权限 ================ -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- ================ 蓝牙相关权限 ================ -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -42,7 +50,9 @@
 
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" /> <!-- 相机权限 -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+    <!-- 相机权限 -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
@@ -53,7 +63,9 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.FLASHLIGHT" /> <!-- 安装包权限 -->
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
+
+    <!-- 安装包权限 -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
@@ -69,8 +81,6 @@
         <activity
             android:name=".vivo_scan.VivoQRCodeScanActivity"
             android:exported="false" />
-
-        <meta-data android:name="com.iflytek.appid" android:value="9de29f32" />
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
