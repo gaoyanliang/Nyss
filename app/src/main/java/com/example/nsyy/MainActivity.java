@@ -50,8 +50,6 @@ import com.example.nsyy.vivo_scan.VivoQRCodeScanActivity;
 import com.huawei.hms.hmsscankit.ScanUtil;
 import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
-import com.iflytek.cloud.SpeechConstant;
-import com.iflytek.cloud.SpeechUtility;
 import com.king.camera.scan.CameraScan;
 
 import java.io.ByteArrayOutputStream;
@@ -124,9 +122,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         AppVersionUtil.getInstance().init(this);
         MySharedPreferences.init(this);
-
-        // 初始化讯飞语音引擎
-        SpeechUtility.createUtility(this, SpeechConstant.APPID + "=9de29f32");
 
         // 消息通知
         PermissionUtil.checkNotification(this);

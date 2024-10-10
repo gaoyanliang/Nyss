@@ -287,9 +287,12 @@ public class NsyyController {
     public ReturnData get_speech_info() {
         ReturnData returnData = new ReturnData();
         try {
+            Float rate = MySharedPreferences.getSharedPreferences().getFloat("rate", 0);
+            String name = MySharedPreferences.getSharedPreferences().getString("name", "");
+            String locale = MySharedPreferences.getSharedPreferences().getString("locale", "");
             String info = MySharedPreferences.getSharedPreferences().getString("speech_info", "");
             Integer interval = MySharedPreferences.getSharedPreferences().getInt("interval", 0);
-            SpeechInfo speechInfo = new SpeechInfo(info, interval);
+            SpeechInfo speechInfo = new SpeechInfo(rate, name, locale, info, interval);
             returnData.setSuccess(true);
             returnData.setCode(200);
             returnData.setData(speechInfo);
@@ -307,8 +310,12 @@ public class NsyyController {
     public ReturnData set_speech_info(@RequestBody SpeechInfo speechInfo) {
         ReturnData returnData = new ReturnData();
         try {
+
             // Storing a setting
             SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
+            editor.putFloat("rate", speechInfo.getRate());
+            editor.putString("name", speechInfo.getName());
+            editor.putString("locale", speechInfo.getLocale());
             editor.putString("speech_info", speechInfo.getInfo());
             editor.putInt("interval", speechInfo.getInterval());
             editor.apply();

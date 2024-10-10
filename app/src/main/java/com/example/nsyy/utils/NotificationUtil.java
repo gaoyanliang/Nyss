@@ -14,21 +14,21 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
 import com.example.nsyy.R;
+import com.example.nsyy.config.MySharedPreferences;
 import com.example.nsyy.notification.NotificationClickReceiver;
-import com.iflytek.cloud.InitListener;
-import com.iflytek.cloud.SpeechConstant;
-import com.iflytek.cloud.SpeechError;
-import com.iflytek.cloud.SpeechSynthesizer;
-import com.iflytek.cloud.SynthesizerListener;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.Random;
 
 public class NotificationUtil {
@@ -44,25 +44,35 @@ public class NotificationUtil {
     private NotificationManager notificationManager;
     private volatile static NotificationUtil uniqueInstance;
     private Context context;
-    private SpeechSynthesizer mTts;
+    private TextToSpeech textToSpeech;
 
     public void setContext(Context context) {
         this.context = context;
         this.notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-
-        mTts = SpeechSynthesizer.createSynthesizer(context, new InitListener() {
-            @Override
-            public void onInit(int code) {
-                if (code != 0) {
-                    Log.e(TAG, "Initialization failed with code: " + code);
-                } else {
-                    Log.i(TAG, "Initialization succeeded");
-                    // 设置参数
-                    mTts.setParameter(SpeechConstant.VOICE_NAME, "xiaoyu");
-                    mTts.setParameter(SpeechConstant.SPEED, "40");
-                    mTts.setParameter(SpeechConstant.VOLUME, "90");
-                    mTts.setParameter(SpeechConstant.ENGINE_TYPE, SpeechConstant.TYPE_CLOUD);
+        this.textToSpeech = new TextToSpeech(context, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                int result = textToSpeech.setLanguage(Locale.SIMPLIFIED_CHINESE);
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Toast.makeText(context, "本设备不支持简体中文语音播报", Toast.LENGTH_SHORT).show();
                 }
+
+                boolean find = false;
+                Float rate = MySharedPreferences.getSharedPreferences().getFloat("rate", 1.3f);
+                String name = MySharedPreferences.getSharedPreferences().getString("name", "xiaozhang");
+                for (Voice voice : textToSpeech.getVoices()) {
+                    if (voice.getName().contains(name) && (voice.getLocale().equals(Locale.CHINESE) || voice.getLocale().equals(Locale.SIMPLIFIED_CHINESE))) {
+                        textToSpeech.setVoice(voice);
+                        textToSpeech.setSpeechRate(rate);
+                        find = true;
+                        Toast.makeText(context, "Speech Initialization successed", Toast.LENGTH_SHORT).show();
+                        break;
+                    }
+                }
+                if (find == false) {
+                    Toast.makeText(context, "没有找到名字是 " + name + " 的语音播报人", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(context, "Initialization failed", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -95,52 +105,7 @@ public class NotificationUtil {
      * @param msg
      */
     public void speechInfo(String msg) {
-
-        if (mTts != null) {
-            mTts.startSpeaking(msg, new SynthesizerListener() {
-                @Override
-                public void onSpeakBegin() {
-                    Log.i(TAG, "onSpeakBegin");
-                }
-
-                @Override
-                public void onBufferProgress(int percent, int beginPos, int endPos, String info) {
-                    Log.i(TAG, "onBufferProgress: " + percent);
-                }
-
-                @Override
-                public void onSpeakPaused() {
-                    Log.i(TAG, "onSpeakPaused");
-                }
-
-                @Override
-                public void onSpeakResumed() {
-                    Log.i(TAG, "onSpeakResumed");
-                }
-
-                @Override
-                public void onSpeakProgress(int percent, int beginPos, int endPos) {
-                    Log.i(TAG, "onSpeakProgress: " + percent);
-                }
-
-                @Override
-                public void onCompleted(SpeechError error) {
-                    if (error == null) {
-                        Log.i(TAG, "onCompleted");
-                    } else {
-                        Log.e(TAG, "onCompleted: " + error.getPlainDescription(true));
-                    }
-                }
-
-                @Override
-                public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
-                    // 可以添加一些自定义事件处理
-                }
-            });
-        } else {
-            Log.e(TAG, "TTS is not initialized");
-        }
-
+        textToSpeech.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "text_to_speech");
     }
 
 

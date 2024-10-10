@@ -4,6 +4,15 @@ import android.content.Intent;
 
 public class SpeechInfo {
 
+    // 语速 默认为 1.3f
+    public float rate;
+
+    // 语音播报人 名字 默认为 xiaozhang
+    public String name;
+
+    // 国家 默认 zh
+    public String locale;
+
     // 语音播报内容
     public String info;
 
@@ -18,9 +27,13 @@ public class SpeechInfo {
         this.info = info;
     }
 
-    public SpeechInfo(String info, Integer interval) {
-        this.info = info;
+
+    public SpeechInfo(float rate, String name, String locale, String info, int interval) {
+        this.rate = rate;
+        this.name = name;
+        this.locale = locale;
         this.interval = interval;
+        this.info = info;
     }
 
     public SpeechInfo() {
@@ -34,11 +47,29 @@ public class SpeechInfo {
         this.interval = interval;
     }
 
-    @Override
-    public String toString() {
-        return "SpeechInfo{" +
-                "info='" + info + '\'' +
-                ", interval=" + interval +
-                '}';
+    public float getRate() {
+        return rate;
     }
+
+    public void setRate(float rate) {
+        this.rate = rate;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getLocale() {
+        return locale;
+    }
+
+    public void setLocale(String locale) {
+        this.locale = locale;
+    }
+
+
 }
