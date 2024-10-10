@@ -56,8 +56,8 @@ public class NotificationUtil {
                 }
 
                 boolean find = false;
-                Float rate = MySharedPreferences.getSharedPreferences().getFloat("rate", 1.0f);
-                String name = MySharedPreferences.getSharedPreferences().getString("name", "xinghe");
+                Float rate = MySharedPreferences.getSharedPreferences().getFloat("rate", 1.3f);
+                String name = MySharedPreferences.getSharedPreferences().getString("name", "xiaozhang");
                 for (Voice voice : textToSpeech.getVoices()) {
                     if (voice.getName().contains(name) && (voice.getLocale().equals(Locale.CHINESE) || voice.getLocale().equals(Locale.SIMPLIFIED_CHINESE))) {
                         textToSpeech.setVoice(voice);
