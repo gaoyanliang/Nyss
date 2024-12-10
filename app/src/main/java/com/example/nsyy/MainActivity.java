@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static final int CAMERA_PERMISSION_REQUEST_CODE= 777;
     public static final String TAG = "Nsyy";
 
-    private static String LOAD_RUL = "";
+    private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
 
     private WebView webView;
 //    private SwipeRefreshLayout swipeRefreshLayout;
@@ -138,14 +138,15 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 初始化 WebView
         webView = findViewById(R.id.webView);
-        String loadUrl = MySharedPreferences.getSharedPreferences().getString("load_url", "");
-        if (!loadUrl.isEmpty() && !loadUrl.equals("")) {
-            LOAD_RUL = loadUrl;
-            initView();
-        } else {
-            // Ask the user to choose a website
-            showWebsiteChooserDialog();
-        }
+        loadWebsite(2);
+//        String loadUrl = MySharedPreferences.getSharedPreferences().getString("load_url", "");
+//        if (!loadUrl.isEmpty() && !loadUrl.equals("")) {
+//            LOAD_RUL = loadUrl;
+//            initView();
+//        } else {
+//            // Ask the user to choose a website
+//            showWebsiteChooserDialog();
+//        }
 
         // 启动定时任务 每十分钟打印一次时间
         Intent intent = new Intent(this, LongRunningService.class);
@@ -176,20 +177,22 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     private void loadWebsite(int choice) {
-        // Array of websites
-        String[] websites = getResources().getStringArray(R.array.websites);
-
-        if (choice >= 0 && choice < websites.length) {
-            String selectedWebsite = websites[choice];
-            LOAD_RUL = selectedWebsite;
-            initView();
-        } else {
-            LOAD_RUL = "http://oa.nsyy.com.cn:6060";
-            initView();
-        }
+//        // Array of websites
+//        String[] websites = getResources().getStringArray(R.array.websites);
+//
+//        if (choice >= 0 && choice < websites.length) {
+//            String selectedWebsite = websites[choice];
+//            LOAD_RUL = selectedWebsite;
+//            initView();
+//        } else {
+//            LOAD_RUL = "http://oa.nsyy.com.cn:6060";
+//            initView();
+//        }
         SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
         editor.putString("load_url", LOAD_RUL);
         editor.apply();
+
+        initView();
     }
 
     private void initView() {
