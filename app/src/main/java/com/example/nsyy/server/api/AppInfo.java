@@ -18,15 +18,19 @@ public class AppInfo {
     @JSONField(name = "type")
     public String type;
 
+    @JSONField(name = "detail")
+    public String detail;
+
     public AppInfo() {
     }
 
-    public AppInfo(boolean isSuccess, int code, String errorMsg, Double version, String type) {
+    public AppInfo(boolean isSuccess, int code, String errorMsg, Double version, String type, String detail) {
         this.isSuccess = isSuccess;
         this.code = code;
         this.errorMsg = errorMsg;
         this.version = version;
         this.type = type;
+        this.detail = detail;
     }
 
     public boolean isSuccess() {
@@ -69,6 +73,14 @@ public class AppInfo {
         this.type = type;
     }
 
+    public String getDetail() {
+        return detail;
+    }
+
+    public void setDetail(String detail) {
+        this.detail = detail;
+    }
+
     @Override
     public String toString() {
         return "AppInfo{" +
@@ -77,6 +89,7 @@ public class AppInfo {
                 ", errorMsg='" + errorMsg + '\'' +
                 ", version=" + version +
                 ", type='" + type + '\'' +
+                ", detail='" + detail + '\'' +
                 '}';
     }
 }

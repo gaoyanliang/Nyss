@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static final int CAMERA_PERMISSION_REQUEST_CODE= 777;
     public static final String TAG = "Nsyy";
 
+//    private static String LOAD_RUL = "http://192.168.124.14:6060";
     private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
 
     private WebView webView;

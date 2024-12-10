@@ -243,11 +243,15 @@ public class NsyyController {
     @CrossOrigin(methods = {RequestMethod.GET})
     @GetMapping("/app_version")
     public AppInfo get_app_version() {
+        /**
+         * 通过 type 区分 ios / android
+         * 通过 detail 区分使用场景： phone / pda / 医废 / 综合预约
+         */
         try {
             double version = AppVersionUtil.getInstance().getCurrentVersionCode();
-            return new AppInfo(true, 200, "", version, "android");
+            return new AppInfo(true, 200, "", version, "android", "phone");
         } catch (Exception e) {
-            return new AppInfo(false, 500, e.getMessage(), -1.0, "android");
+            return new AppInfo(false, 500, e.getMessage(), -1.0, "android", "phone");
         }
     }
 
