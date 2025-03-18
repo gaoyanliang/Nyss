@@ -14,8 +14,8 @@ android {
         applicationId "com.example.nsyy"
         minSdk 24
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -89,5 +89,6 @@ dependencies {
     // zxinglite 扫码
     implementation 'com.github.jenly1314:zxing-lite:3.2.0'
 
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 
 }

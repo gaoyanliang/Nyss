@@ -11,9 +11,9 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 1,
-      "versionName": "1.0",
-      "outputFile": "NsyyAPK_release_v1.0_20241210.apk"
+      "versionCode": 2,
+      "versionName": "2.0",
+      "outputFile": "NsyyAPK_release_v2.0_20241220.apk"
     }
   ],
   "elementType": "File"

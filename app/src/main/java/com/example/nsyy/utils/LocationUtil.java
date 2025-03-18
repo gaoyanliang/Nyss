@@ -79,11 +79,11 @@ public class LocationUtil {
         return uniqueInstance;
     }
 
-    public String getLocation(boolean turnOnGPS) {
+    public Location getLocation(boolean turnOnGPS) {
         // 检查位置权限
         PermissionUtil.checkLocationPermission(context);
-
         Location location = null;
+
         if (gpsEnabled() && getGPSLocation(locationManager) != null) {
             //GPS 定位的精准度比较高，但是非常耗电。
             System.out.println("=====GPS_PROVIDER=====");
@@ -118,7 +118,7 @@ public class LocationUtil {
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
         }
 
-        return getAddress(location);
+        return location;
     }
 
     private boolean gpsEnabled() {
@@ -192,7 +192,7 @@ public class LocationUtil {
      * @param location
      * @return
      */
-    private String getAddress(Location location) {
+    public String getAddress(Location location) {
         if (location == null) {
             return "unknown address";
         }
@@ -202,6 +202,7 @@ public class LocationUtil {
         try {
             List<Address> locationList = gc.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
 
+            String ret_address = "";
             if (locationList != null && locationList.size() > 0) {
                 Address address = locationList.get(0);
 //                String countryName = address.getCountryName();//国家
@@ -212,13 +213,14 @@ public class LocationUtil {
 //                String featureName = address.getFeatureName();//街道
 
                 for (int i = 0; address.getAddressLine(i) != null; i++) {
+                    ret_address = ret_address + address.getAddressLine(i);
                     String addressLine = address.getAddressLine(i);
                     System.out.println("addressLine=====" + addressLine);
                 }
                 if(addressCallback != null){
                     addressCallback.onGetAddress(address);
                 }
-                return address.getAddressLine(0);
+                return ret_address;
             }
         } catch (IOException e) {
             e.printStackTrace();

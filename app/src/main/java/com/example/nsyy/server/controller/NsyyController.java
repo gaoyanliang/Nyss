@@ -22,6 +22,7 @@ import com.yanzhenjie.andserver.annotation.RequestMethod;
 import com.yanzhenjie.andserver.annotation.RequestParam;
 import com.yanzhenjie.andserver.annotation.RestController;
 import android.content.SharedPreferences;
+import android.location.Location;
 
 import java.io.IOException;
 
@@ -69,10 +70,13 @@ public class NsyyController {
     public ReturnData location() {
         ReturnData returnData = new ReturnData();
         try {
-            String address = LocationUtil.getInstance().getLocation(true);
+            Location local = LocationUtil.getInstance().getLocation(true);
+            String address = LocationUtil.getInstance().getAddress(local);
             returnData.setSuccess(true);
             returnData.setCode(200);
             returnData.setData(address);
+            returnData.setLatitude(local.getLatitude());
+            returnData.setLongitude(local.getLongitude());
             return returnData;
         } catch (Exception e) {
             returnData.setCode(FAILED_TO_GET_LOCATION);

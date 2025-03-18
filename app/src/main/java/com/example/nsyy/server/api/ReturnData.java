@@ -35,12 +35,21 @@ public class ReturnData {
     @JSONField(name = "all_unread")
     public int all_unread;
 
-    public ReturnData(boolean isSuccess, int code, String errorMsg, Object data, int all_unread) {
+    @JSONField(name = "latitude")
+    public double latitude;
+
+    @JSONField(name = "longitude")
+    public double longitude;
+
+
+    public ReturnData(boolean isSuccess, int code, String errorMsg, Object data, int all_unread, double latitude, double longitude) {
         this.isSuccess = isSuccess;
         this.code = code;
         this.errorMsg = errorMsg;
         this.data = data;
         this.all_unread = all_unread;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public ReturnData() {
@@ -86,6 +95,22 @@ public class ReturnData {
         this.all_unread = all_unread;
     }
 
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
     @Override
     public String toString() {
         return "ReturnData{" +
@@ -94,6 +119,8 @@ public class ReturnData {
                 ", errorMsg='" + errorMsg + '\'' +
                 ", data=" + data +
                 ", all_unread=" + all_unread +
+                ", latitude=" + latitude +
+                ", longitude=" + longitude +
                 '}';
     }
 
