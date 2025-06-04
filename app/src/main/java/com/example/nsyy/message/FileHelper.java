@@ -3,18 +3,14 @@ package com.example.nsyy.message;
 import android.content.Context;
 
 import com.example.nsyy.utils.NotificationUtil;
-import com.yanzhenjie.andserver.framework.body.StreamBody;
 import com.yanzhenjie.andserver.http.multipart.MultipartFile;
-import com.yanzhenjie.andserver.util.MediaType;
+import com.alibaba.fastjson.JSON;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,7 +19,6 @@ import java.util.List;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
-import java.util.ListIterator;
 import java.util.Map;
 
 import org.json.JSONArray;
@@ -38,6 +33,10 @@ public class FileHelper {
     public static String CONTACTS_DIR = "CONTACTS";
     // 附件目录
     public static String ATTACHMENTS_DIR = "ATTACHMENTS";
+
+    public static String NOTIFICATION_FILE_HEADER = "nsyy_notification_message_";
+    public static String PRIVATE_FILE_HEADER = "nsyy_private_message_";
+    public static String GROUP_FILE_HEADER = "nsyy_group_message_";
 
     public static boolean RUN_IN_BACKGROUND = false;
 
@@ -65,6 +64,29 @@ public class FileHelper {
         return uniqueInstance;
     }
 
+    public void notificationSaveToLocal(int inChat, int curUserId, Map<String, Object> message) {
+        Object value = message.get("chat_type");
+        int chatType = (value != null) ? ((Number) value).intValue() : 0; // 默认值
+
+        value = message.get("sender");
+        int sender = (value != null) ? ((Number) value).intValue() : 0; // 默认值
+
+        value = message.get("receiver");
+        int receiver = (value != null) ? ((Number) value).intValue() : 0; // 默认值
+
+        String sender_name = (String) message.getOrDefault("sender_name", "Unknown");
+        if (sender == curUserId) {
+            sender = receiver;
+            sender_name = (String) message.getOrDefault("receiver_name", "Unknown");
+        }
+
+        String json = JSON.toJSONString(message);
+        updateLocalContact(true, chatType, curUserId, sender, sender_name, inChat, json);
+
+        writeMessageToLocal(curUserId, json);
+    }
+
+
     /**
      * 读取消息
      * 1. 先从服务器加载最新消息，写入本地文件
@@ -77,195 +99,66 @@ public class FileHelper {
     public List<Map<String, Object>> updateLocalDataAndReturnMsg(int type, int curUserId, Map<String, String> dict) {
         List<Map<String, Object>> messages = new ArrayList<>();
 
-        // 从服务器加载最新数据更新到本地
-        String fileName = updateLocalDataByServer(type, dict, false);
-
+        // 1. 构建文件名（与原逻辑相同）
+        String fileName = buildFileName(type, dict);
         String dir = "/" + MESSAGES_DIR + "/" + curUserId + "/";
-        // 从文件中读取消息
-        List<String> messageInFile = readLinesFromFile(fileName, ALL_LINE, dir);
-        int start = Integer.parseInt(dict.get("start"));
-        int count = Integer.parseInt(dict.get("count"));
 
-        // 使用 ListIterator 反向遍历 List
-        ListIterator<String> listIterator = messageInFile.listIterator(messageInFile.size());
-        while (listIterator.hasPrevious()) {
-            String msg = listIterator.previous();
+        // 2. 从文件读取所有消息行
+        List<String> messageInFile = readLinesFromFile(fileName, ALL_LINE, dir);
+
+        // 3. 解析分页参数（带默认值）
+        int start = Integer.parseInt(dict.getOrDefault("start", "0"));
+        int count = Integer.parseInt(dict.getOrDefault("count", String.valueOf(messageInFile.size())));
+
+        // 4. 计算分页范围
+        int totalMessages = messageInFile.size();
+        int fromIndex = Math.max(0, totalMessages - start - count); // 防止负数
+        int toIndex = Math.min(totalMessages, totalMessages - start); // 防止越界
+
+        // 5. 截取子列表（最新消息在文件末尾）
+        List<String> paginatedMessages = messageInFile.subList(fromIndex, toIndex);
+
+        // 6. 转换为JSON格式
+        for (String msg : paginatedMessages) {
             try {
-                // Convert JSON string to JSON object
                 JSONObject jsonObject = new JSONObject(msg);
-                String idStr = jsonObject.getString("id");
-                int id = Integer.parseInt(idStr);
-                if (id > start) {
-                    JSONObject object = new JSONObject(msg);
-                    Map<String, Object> jsonmsg = jsonToMap(object);
-                    if (0 == ((Number) jsonmsg.get("chat_type")).intValue()) {
-                        jsonmsg.put("context", jsonToMap(new JSONObject(((String) jsonmsg.get("context")))));
-                    }
-                    messages.add(jsonmsg);
+                Map<String, Object> jsonMsg = jsonToMap(jsonObject);
+
+                // 特殊处理通知消息的context
+                if (type == 0) {
+                    jsonMsg.put("context", jsonToMap(new JSONObject((Map) jsonMsg.get("context"))));
                 }
+
+                messages.add(jsonMsg);
+
+                // 达到数量限制时停止
+                if (messages.size() >= count) break;
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
-            if (messages.size() >= count){
-                break;
-            }
         }
-        Collections.reverse(messages);
+
+//        Collections.reverse(messages);
         return messages;
     }
 
 
-    public String updateLocalDataByServer(int type, Map<String, String> dict, boolean async) {
-        // 根据文件中是否存在消息，更新消息
-        String curUserId = dict.get("cur_user_id");
-        String dir = "/" + MESSAGES_DIR + "/" + curUserId + "/";
-        String fileName = "";
-        if (type == 0) {
-            // 通知消息
-            String cur_user_id = dict.get("cur_user_id");
-            fileName = "nsyy_notification_message_" + cur_user_id;
-            List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-
-            if (!lastMsg.isEmpty()) {
-                // 文件存在消息，根据最后一条消息进行更新
-                try {
-                    // Convert JSON string to JSON object
-                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-                    String id = jsonObject.getString("id");
-
-                    Map<String, Object> params = new HashMap<>();
-                    params.put("read_type", dict.get("read_type"));
-                    params.put("cur_user_id", cur_user_id);
-                    params.put("start", id);
-                    params.put("count", Integer.toString(500));
-
-                    if (async) {
-                        asynchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                    } else {
-                        synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                    }
-                } catch (JSONException e) {
-                    System.out.println("===> FileHelper.updateLocalDataByServer error");
-                    e.printStackTrace();
-                }
-            } else {
-                // 文件不存在消息，直接从数据库查询
-                Map<String, Object> params = new HashMap<>();
-                params.put("read_type", dict.get("read_type"));
-                params.put("cur_user_id", cur_user_id);
-                params.put("start", Integer.toString(-1));
-                params.put("count", Integer.toString(500));
-
-                if (async) {
-                    asynchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                } else {
-                    synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                }
-            }
-        } else if (type == 1) {
-            // 私聊消息
-            String sender = dict.get("cur_user_id");
-            String receiver = dict.get("chat_user_id");
-
-            if (Integer.parseInt(sender) <= Integer.parseInt(receiver)) {
-                fileName =  "nsyy_private_message_" + sender + "_" + receiver;
-            } else {
-                fileName =  "nsyy_private_message_" + receiver + "_" + sender;
-            }
-
-            List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-            if (!lastMsg.isEmpty()) {
-                // 文件存在消息，根据最后一条消息进行更新
-                try {
-                    // Convert JSON string to JSON object
-                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-                    String id = jsonObject.getString("id");
-
-                    Map<String, Object> params = new HashMap<>();
-                    params.put("read_type", dict.get("read_type"));
-                    params.put("cur_user_id", sender);
-                    params.put("chat_user_id", receiver);
-                    params.put("start", id);
-                    params.put("count", Integer.toString(500));
-
-                    if (async) {
-                        asynchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                    } else {
-                        synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                    }
-
-                } catch (JSONException e) {
-                    System.out.println("===> FileHelper.updateLocalDataByServer error");
-                    e.printStackTrace();
-                }
-            } else {
-                // 文件不存在消息，直接从数据库查询
-                Map<String, Object> params = new HashMap<>();
-                params.put("read_type", dict.get("read_type"));
-                params.put("cur_user_id", sender);
-                params.put("chat_user_id", receiver);
-                params.put("start", Integer.toString(-1));
-                params.put("count", Integer.toString(500));
-
-                if (async) {
-                    asynchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                } else {
-                    synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                }
-            }
-
-
-        } else if (type == 2) {
-            // 群聊消息
-            String cur_user_id = dict.get("cur_user_id");
-            String chat_user_id = dict.get("chat_user_id");
-
-            fileName =  "nsyy_group_message_" + chat_user_id;
-            List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-            if (!lastMsg.isEmpty()) {
-                // 文件存在消息，根据最后一条消息进行更新
-                try {
-                    // Convert JSON string to JSON object
-                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-                    String id = jsonObject.getString("id");
-
-                    Map<String, Object> params = new HashMap<>();
-                    params.put("read_type", dict.get("read_type"));
-                    params.put("cur_user_id", cur_user_id);
-                    params.put("chat_user_id", chat_user_id);
-                    params.put("start", id);
-                    params.put("count", Integer.toString(500));
-
-                    if (async) {
-                        asynchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                    } else {
-                        synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                    }
-
-                } catch (JSONException e) {
-                    System.out.println("===> FileHelper.updateLocalDataByServer error");
-                    e.printStackTrace();
-                }
-            } else {
-                // 文件不存在消息，直接从数据库查询
-                Map<String, Object> params = new HashMap<>();
-                params.put("read_type", dict.get("read_type"));
-                params.put("cur_user_id", cur_user_id);
-                params.put("chat_user_id", chat_user_id);
-                params.put("start", Integer.toString(-1));
-                params.put("count", Integer.toString(500));
-
-                if (async) {
-                    asynchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                } else {
-                    synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), dir, fileName);
-                }
-            }
+    // 提取文件名构建逻辑
+    private String buildFileName(int type, Map<String, String> dict) {
+        switch (type) {
+            case 0: // 通知
+                return NOTIFICATION_FILE_HEADER + dict.get("cur_user_id");
+            case 1: // 私聊
+                int sender = Integer.parseInt(dict.get("cur_user_id"));
+                int receiver = Integer.parseInt(dict.get("chat_user_id"));
+                return PRIVATE_FILE_HEADER + Math.min(sender, receiver) + "_" + Math.max(sender, receiver);
+            case 2: // 群聊
+                return GROUP_FILE_HEADER + dict.get("chat_user_id");
+            default:
+                throw new IllegalArgumentException("Invalid message type: " + type);
         }
-
-        return fileName;
     }
+
 
     /**
      * 更新未读数量
@@ -371,11 +264,10 @@ public class FileHelper {
 
     /**
      * 将消息写入本地文件
-     * @param prevMsgId
      * @param userId
      * @param msg
      */
-    public void writeMessageToLocal(int prevMsgId, int userId, String msg) {
+    public void writeMessageToLocal(int userId, String msg) {
         JSONObject newMessage = null;
         String fileName = "";
 
@@ -392,66 +284,32 @@ public class FileHelper {
                 // 通知类型
                 String receiver = newMessage.getString("receiver");
                 if (receiver.contains(Integer.toString(userId))) {
-                    fileName = "nsyy_notification_message_" + Integer.toString(userId);
-                    List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-                    if (lastMsg.isEmpty()) {
-                        // 文件之前不存在，直接存入
-                        writeLinesToFile(writemsg, fileName, dir, true);
-                    } else {
-                        // Convert JSON string to JSON object
-                        JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-                        int id = jsonObject.getInt("id");
-
-                        if (id == prevMsgId) {
-                            writeLinesToFile(writemsg, fileName, dir, true);
-                        }
-                    }
+                    fileName = NOTIFICATION_FILE_HEADER + Integer.toString(userId);
+                    writeLinesToFile(writemsg, fileName, dir, true);
                 }
             } else if (type == 1) {
                 // 私聊
                 String sender = newMessage.getString("sender");
                 String receiver = newMessage.getString("receiver");
                 if (Integer.parseInt(sender) <= Integer.parseInt(receiver)) {
-                    fileName = "nsyy_private_message_" + sender + "_" + receiver;
+                    fileName = PRIVATE_FILE_HEADER + sender + "_" + receiver;
                 } else {
-                    fileName = "nsyy_private_message_" + receiver + "_" + sender;
+                    fileName = PRIVATE_FILE_HEADER + receiver + "_" + sender;
                 }
-                List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-                if (lastMsg.isEmpty()) {
-                    // 文件之前不存在，直接存入
-                    writeLinesToFile(writemsg, fileName, dir, true);
-                } else {
-                    // Convert JSON string to JSON object
-                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-                    int id = jsonObject.getInt("id");
+                writeLinesToFile(writemsg, fileName, dir, true);
 
-                    if (id == prevMsgId) {
-                        writeLinesToFile(writemsg, fileName, dir, true);
-                    }
-                }
             } else if (type == 2) {
                 // 群聊
                 String groupId = newMessage.getString("group_id");
-                fileName = "nsyy_group_message_" + groupId;
-                List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-                if (lastMsg.isEmpty()) {
-                    // 文件之前不存在，直接存入
-                    writeLinesToFile(writemsg, fileName, dir, true);
-                } else {
-                    // Convert JSON string to JSON object
-                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-                    int id = jsonObject.getInt("id");
-
-                    if (id == prevMsgId) {
-                        writeLinesToFile(writemsg, fileName, dir, true);
-                    }
-                }
+                fileName = GROUP_FILE_HEADER + groupId;
+                writeLinesToFile(writemsg, fileName, dir, true);
             }
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
+
 
     /**
      * 调用系统消息通知
@@ -520,14 +378,14 @@ public class FileHelper {
             fileName = "notification";
             if (!fromMsgPush) {
                 try {
-                    int lastMsgId = jsonObject.getInt("last_msg_id");
+//                    int lastMsgId = jsonObject.getInt("last_msg_id");
                     String lastMsg = jsonObject.getString("last_msg");
                     String lastMsgTime = jsonObject.getString("last_msg_time");
                     int unread = jsonObject.getInt("unread");
 
                     chats.put("id", curUserId);
                     chats.put("name", "通知消息");
-                    chats.put("last_msg_id", lastMsgId);
+//                    chats.put("last_msg_id", lastMsgId);
                     chats.put("last_msg", lastMsg);
                     chats.put("last_msg_time", lastMsgTime);
                     chats.put("unread", unread);
@@ -537,13 +395,13 @@ public class FileHelper {
                 }
             } else {
                 try {
-                    int lastMsgId = jsonObject.getInt("id");
+//                    int lastMsgId = jsonObject.getInt("id");
                     String lastMsg = jsonObject.getString("context");
                     String lastMsgTime = jsonObject.getString("timer");
 
                     chats.put("id", curUserId);
                     chats.put("name", "通知消息");
-                    chats.put("last_msg_id", lastMsgId);
+//                    chats.put("last_msg_id", lastMsgId);
                     chats.put("last_msg", lastMsg);
                     chats.put("last_msg_time", lastMsgTime);
                 } catch (JSONException e) {
@@ -555,7 +413,7 @@ public class FileHelper {
             fileName = "private_" + chatUserId;
             if (!fromMsgPush) {
                 try {
-                    int lastMsgId = jsonObject.getInt("last_msg_id");
+//                    int lastMsgId = jsonObject.getInt("last_msg_id");
                     String lastMsg = jsonObject.getString("last_msg");
                     String lastMsgTime = jsonObject.getString("last_msg_time");
                     int unread = jsonObject.getInt("unread");
@@ -563,7 +421,7 @@ public class FileHelper {
                     chats.put("id", curUserId);
                     chats.put("chat_id", chatUserId);
                     chats.put("name", chatUserName);
-                    chats.put("last_msg_id", lastMsgId);
+//                    chats.put("last_msg_id", lastMsgId);
                     chats.put("last_msg", lastMsg);
                     chats.put("last_msg_time", lastMsgTime);
                     chats.put("unread", unread);
@@ -573,14 +431,14 @@ public class FileHelper {
                 }
             } else {
                 try {
-                    int lastMsgId = jsonObject.getInt("id");
+//                    int lastMsgId = jsonObject.getInt("id");
                     String lastMsg = jsonObject.getString("context");
                     String lastMsgTime = jsonObject.getString("timer");
 
                     chats.put("id", curUserId);
                     chats.put("chat_id", chatUserId);
                     chats.put("name", chatUserName);
-                    chats.put("last_msg_id", lastMsgId);
+//                    chats.put("last_msg_id", lastMsgId);
                     chats.put("last_msg", lastMsg);
                     chats.put("last_msg_time", lastMsgTime);
                 } catch (JSONException e) {
@@ -602,14 +460,14 @@ public class FileHelper {
             } else {
                 if (!fromMsgPush) {
                     try {
-                        int lastMsgId = jsonObject.getInt("last_msg_id");
+//                        int lastMsgId = jsonObject.getInt("last_msg_id");
                         String lastMsg = jsonObject.getString("last_msg");
                         String lastMsgTime = jsonObject.getString("last_msg_time");
                         int unread = jsonObject.getInt("unread");
 
                         chats.put("id", chatUserId);
                         chats.put("name", chatUserName);
-                        chats.put("last_msg_id", lastMsgId);
+//                        chats.put("last_msg_id", lastMsgId);
                         chats.put("last_msg", lastMsg);
                         chats.put("last_msg_time", lastMsgTime);
                         chats.put("unread", unread);
@@ -619,13 +477,13 @@ public class FileHelper {
                     }
                 } else {
                     try {
-                        int lastMsgId = jsonObject.getInt("id");
+//                        int lastMsgId = jsonObject.getInt("id");
                         String lastMsg = jsonObject.getString("context");
                         String lastMsgTime = jsonObject.getString("timer");
 
                         chats.put("id", chatUserId);
                         chats.put("name", chatUserName);
-                        chats.put("last_msg_id", lastMsgId);
+//                        chats.put("last_msg_id", lastMsgId);
                         chats.put("last_msg", lastMsg);
                         chats.put("last_msg_time", lastMsgTime);
                     } catch (JSONException e) {
@@ -663,369 +521,6 @@ public class FileHelper {
         writeLinesToFile(writeMsgs, fileName, dir, false);
     }
 
-
-    /**
-     * 从服务器加载离线消息，更新本地消息
-     * @param type
-     * @param dict
-     */
-//    public void updateLocalData(int type, Map<String, String> dict) {
-//        // 根据文件中是否存在消息，更新消息
-//        String fileName = "";
-//        String dir = MESSAGES_DIR + "/" + dict.get("cur_user_id") + "/";
-//        if (type == 0) {
-//            // 通知消息
-//            String cur_user_id = dict.get("cur_user_id");
-//            fileName = "nsyy_notification_message_" + cur_user_id;
-//            List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-//
-//            if (!lastMsg.isEmpty()) {
-//                // 文件存在消息，根据最后一条消息进行更新
-//                try {
-//                    // Convert JSON string to JSON object
-//                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-//                    String id = jsonObject.getString("id");
-//
-//                    Map<String, Object> params = new HashMap<>();
-//                    params.put("read_type", dict.get("read_type"));
-//                    params.put("cur_user_id", dict.get("cur_user_id"));
-//                    params.put("chat_user_id", dict.get("chat_user_id"));
-//                    params.put("start", Integer.toString(Integer.parseInt(id) + 1));
-//                    params.put("count", Integer.toString(500));
-//
-//                    synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), Integer.parseInt(dict.get("cur_user_id")), fileName);
-//
-//                } catch (JSONException e) {
-//                    System.out.println("===> FileHelper.updateLocalDataAndReturnMsg error");
-//                    e.printStackTrace();
-//                }
-//            } else {
-//                // 文件不存在消息，直接从数据库查询
-//                Map<String, Object> params = new HashMap<>();
-//                params.put("read_type", dict.get("read_type"));
-//                params.put("cur_user_id", dict.get("cur_user_id"));
-//                params.put("chat_user_id", dict.get("chat_user_id"));
-//                params.put("start", Integer.toString(-1));
-//                params.put("count", Integer.toString(500));
-//
-//                synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), Integer.parseInt(dict.get("cur_user_id")), fileName);
-//            }
-//        } else if (type == 1) {
-//            // 私聊消息
-//            String sender = dict.get("cur_user_id");
-//            String receiver = dict.get("chat_user_id");
-//
-//            if (Integer.parseInt(sender) <= Integer.parseInt(receiver)) {
-//                fileName =  "nsyy_private_message_" + sender + "_" + receiver;
-//            } else {
-//                fileName =  "nsyy_private_message_" + receiver + "_" + sender;
-//            }
-//
-//            List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-//            if (!lastMsg.isEmpty()) {
-//                // 文件存在消息，根据最后一条消息进行更新
-//                try {
-//                    // Convert JSON string to JSON object
-//                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-//                    String id = jsonObject.getString("id");
-//
-//                    Map<String, Object> params = new HashMap<>();
-//                    params.put("read_type", dict.get("read_type"));
-//                    params.put("cur_user_id", sender);
-//                    params.put("chat_user_id", receiver);
-//                    params.put("start", Integer.toString(Integer.parseInt(id) + 1));
-//                    params.put("count", Integer.toString(500));
-//
-//                    synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), Integer.parseInt(sender), fileName);
-//
-//                } catch (JSONException e) {
-//                    System.out.println("===> FileHelper.updateLocalDataAndReturnMsg error");
-//                    e.printStackTrace();
-//                }
-//            } else {
-//                // 文件不存在消息，直接从数据库查询
-//                Map<String, Object> params = new HashMap<>();
-//                params.put("read_type", dict.get("read_type"));
-//                params.put("cur_user_id", sender);
-//                params.put("chat_user_id", receiver);
-//                params.put("start", Integer.toString(-1));
-//                params.put("count", Integer.toString(500));
-//
-//                synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), Integer.parseInt(sender), fileName);
-//            }
-//
-//
-//        } else if (type == 2) {
-//            // 群聊消息
-//            String sender = dict.get("cur_user_id");
-//            String receiver = dict.get("chat_user_id");
-//
-//            fileName =  "nsyy_group_message_" + receiver;
-//            List<String> lastMsg = readLinesFromFile(fileName, LAST_LINE, dir);
-//            if (!lastMsg.isEmpty()) {
-//                // 文件存在消息，根据最后一条消息进行更新
-//                try {
-//                    // Convert JSON string to JSON object
-//                    JSONObject jsonObject = new JSONObject(lastMsg.get(0));
-//                    String id = jsonObject.getString("id");
-//
-//                    Map<String, Object> params = new HashMap<>();
-//                    params.put("read_type", dict.get("read_type"));
-//                    params.put("cur_user_id", sender);
-//                    params.put("chat_user_id", receiver);
-//                    params.put("start", Integer.toString(Integer.parseInt(id) + 1));
-//                    params.put("count", Integer.toString(500));
-//
-//                    synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), Integer.parseInt(sender), fileName);
-//
-//                } catch (JSONException e) {
-//                    System.out.println("===> FileHelper.updateLocalDataAndReturnMsg error");
-//                    e.printStackTrace();
-//                }
-//            } else {
-//                // 文件不存在消息，直接从数据库查询
-//                Map<String, Object> params = new HashMap<>();
-//                params.put("read_type", dict.get("read_type"));
-//                params.put("cur_user_id", sender);
-//                params.put("chat_user_id", receiver);
-//                params.put("start", Integer.toString(-1));
-//                params.put("count", Integer.toString(500));
-//
-//                synchronousHttpPostRequest(dict.get("url"), dictToJsonStr(params), Integer.parseInt(sender), fileName);
-//            }
-//        }
-//
-//    }
-
-
-    /**
-     * 同步更新聊天人列表
-     * @param urlString
-     * @param userId
-     */
-    public void synchronousUpdateContactList(String urlString, int userId) {
-        try {
-            System.out.println("===> fetch contact list from server: url = " + urlString + "  user_id = " + userId);
-            // Specify the URL for the HTTP POST request
-            URL url = new URL(urlString);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setDoInput(true);
-
-            // Set the request headers (optional)
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Accept", "application/json");
-
-            // Write the JSON payload to the request body
-            Map<String, Object> param = new HashMap<>();
-            param.put("user_id", userId);
-            try (OutputStream os = connection.getOutputStream()) {
-                byte[] input = dictToJsonStr(param).getBytes("utf-8");
-                os.write(input, 0, input.length);
-            }
-
-            // Read the response from the server
-            String responseData = null;
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
-                StringBuilder response = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null) {
-                    response.append(responseLine.trim());
-                }
-                responseData = response.toString();
-                System.out.println("Response: " + responseData);
-            }
-
-            // Convert JSON string to JSON object
-            JSONObject jsonObject = new JSONObject(responseData);
-            int code = jsonObject.getInt("code");
-            // 查询成功，将查询到的消息写入文件
-            if (code == 20000) {
-                JSONArray msgs = jsonObject.getJSONArray("data");
-                for (int i = 0; i < msgs.length(); i++) {
-                    JSONObject contact = msgs.getJSONObject(i);
-                    int chatType = contact.getInt("chat_type");
-                    if (chatType == 0) {
-                        int id = contact.getInt("id");
-                        String name = contact.getString("name");
-                        updateLocalContact(false, chatType, id, id, name, 0, contact.toString());
-                    } else if (chatType == 1) {
-                        int chatId = contact.getInt("chat_id");
-                        String name = contact.getString("name");
-                        updateLocalContact(false, chatType, userId, chatId, name, 0, contact.toString());
-                    } else if (chatType == 2) {
-                        int chatId = contact.getInt("id");
-                        String name = contact.getString("name");
-                        if (contact.has("last_msg")) {
-                            updateLocalContact(false, chatType, userId, chatId, name, 0, contact.toString());
-                        } else {
-                            updateLocalContact(false, chatType, userId, chatId, name, 0, null);
-                        }
-
-                    }
-                }
-            }
-
-            // Close the connection
-            connection.disconnect();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-
-    /**
-     * 异步更新离线消息
-     * @param url
-     * @param curUserId
-     */
-    public void asynchronousUpdateMessage(String url, int curUserId) {
-        System.out.println("===> 开始异步更新离线消息");
-        String dir = "/" + CONTACTS_DIR + "/" + curUserId + "/";
-
-        // 获取应用的私有文件目录
-        File directory = new File(context.getFilesDir() + dir);
-        if (directory.isDirectory()) {
-            System.out.println("===> 开始遍历目录: " + directory.getAbsolutePath());
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        // 子目录不处理（正常情况不会出现子目录）
-                    } else {
-                        // 处理文件，例如打印文件路径
-                        System.out.println("读取 File: " + file.getAbsolutePath());
-                        List<String> allLines = new ArrayList<>();
-
-                        try (FileInputStream fis = new FileInputStream(file.getPath());
-                             BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
-
-                            // Read all line data
-                            String line;
-                            while ((line = reader.readLine()) != null) {
-                                allLines.add(line);
-                            }
-
-                            String msg = "";
-                            if (allLines.size() > 0){
-                                msg = allLines.get(allLines.size() - 1);
-                            } else {
-                                msg = allLines.get(0);
-                            }
-                            System.out.println("===> File 内容: " + msg);
-
-                            // Convert JSON string to JSON object
-                            JSONObject jsonObject = new JSONObject(msg);
-                            int chatType = jsonObject.getInt("chat_type");
-                            Map<String, String> param = new HashMap<>();
-                            param.put("url", url);
-
-                            if (chatType == 0) {
-                                param.put("read_type", Integer.toString(chatType));
-                                param.put("cur_user_id", Integer.toString(curUserId));
-                                updateLocalDataByServer(chatType, param, true);
-                            } else if (chatType == 1) {
-                                int chatId = jsonObject.getInt("chat_id");
-                                param.put("read_type", Integer.toString(chatType));
-                                param.put("cur_user_id", Integer.toString(curUserId));
-                                param.put("chat_user_id", Integer.toString(chatId));
-                                updateLocalDataByServer(chatType, param, true);
-                            } else if (chatType == 2) {
-                                int chatId = jsonObject.getInt("id");
-                                param.put("read_type", Integer.toString(chatType));
-                                param.put("cur_user_id", Integer.toString(curUserId));
-                                param.put("chat_user_id", Integer.toString(chatId));
-                                updateLocalDataByServer(chatType, param, true);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (JSONException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-
-
-    /**
-     * 同步处理 http post 请求
-     *
-     * @param urlString
-     * @param jsonInputString
-     * @param fileName
-     */
-    public void synchronousHttpPostRequest(String urlString, String jsonInputString, String dir, String fileName) {
-        try {
-            // Specify the URL for the HTTP POST request
-            URL url = new URL(urlString);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setDoInput(true);
-
-            // Set the request headers (optional)
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Accept", "application/json");
-
-            // Write the JSON payload to the request body
-            try (OutputStream os = connection.getOutputStream()) {
-                byte[] input = jsonInputString.getBytes("utf-8");
-                os.write(input, 0, input.length);
-            }
-
-            // Get the response code
-            int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
-
-            // Read the response from the server
-            String responseData = null;
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
-                StringBuilder response = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null) {
-                    response.append(responseLine.trim());
-                }
-                responseData = response.toString();
-                System.out.println("Response: " + responseData);
-            }
-
-            // Convert JSON string to JSON object
-            JSONObject jsonObject = new JSONObject(responseData);
-            int code = jsonObject.getInt("code");
-            // 查询成功，将查询到的消息写入文件
-            if (code == 20000) {
-                JSONArray msgs = jsonObject.getJSONArray("data");
-                writeLinesToFile(jsonArrayToList(msgs), fileName, dir, true);
-            }
-
-            // Close the connection
-            connection.disconnect();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    /**
-     * 异步处理 http post 请求
-     *
-     * @param urlString
-     * @param jsonInputString
-     * @param fileName
-     */
-    public void asynchronousHttpPostRequest(String urlString, String jsonInputString, String dir, String fileName)  {
-        AsyncHttpTask task = new AsyncHttpTask(fileName, dir);
-        task.execute(urlString, jsonInputString);
-    }
 
 
     // 按行写入文件
@@ -1089,14 +584,13 @@ public class FileHelper {
     }
 
 
-
     // 按行读取文件数据
     // -1 读取所有数据
     // 1 读取最后一行的消息
     public List<String> readLinesFromFile(String fileName, int count, String dir) {
         // Get the file path for internal storage
         String filePath = context.getFilesDir() + dir + fileName;
-        System.out.println("读取文件： " + filePath);
+        System.out.println("===> 读取文件： " + filePath);
         List<String> allLines = new ArrayList<>();
 
         try (FileInputStream fis = new FileInputStream(filePath);
@@ -1120,6 +614,7 @@ public class FileHelper {
 
         return allLines;
     }
+
 
     public void deleteFile(String fileName, String dir) {
         try {

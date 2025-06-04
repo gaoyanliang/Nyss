@@ -14,8 +14,8 @@ android {
         applicationId "com.example.nsyy"
         minSdk 24
         targetSdk 33
-        versionCode 2
-        versionName "2.0"
+        versionCode 3
+        versionName "3.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -91,4 +91,8 @@ dependencies {
 
     implementation 'com.google.android.gms:play-services-location:21.0.1'
 
+    // socket 客户端
+    implementation ('io.socket:socket.io-client:2.1.0') {
+        exclude group: 'org.json', module: 'json' // 避免与 Android 内置 org.json 冲突
+    }
 }

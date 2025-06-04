@@ -7,6 +7,7 @@ public class UserInfo {
     public String username;
 
     public String password;
+    public Integer pers_id;
 
     public boolean isHasValue() {
         return hasValue;
@@ -29,11 +30,12 @@ public class UserInfo {
     public UserInfo() {
     }
 
-    public UserInfo(boolean hasValue, String username, String password, String version) {
+    public UserInfo(boolean hasValue, String username, String password, String version, Integer pers_id) {
         this.hasValue = hasValue;
         this.username = username;
         this.password = password;
         this.version = version;
+        this.pers_id = pers_id;
     }
 
     public String getUsername() {
@@ -52,12 +54,21 @@ public class UserInfo {
         this.password = password;
     }
 
+    public Integer getPers_id() {
+        return pers_id;
+    }
+
+    public void setPers_id(Integer pers_id) {
+        this.pers_id = pers_id;
+    }
+
     @Override
     public String toString() {
         return "UserInfo{" +
-                "username='" + username + '\'' +
+                "hasValue=" + hasValue +
+                ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
-                ", hasValue='" + hasValue + '\'' +
+                ", pers_id=" + pers_id +
                 ", version='" + version + '\'' +
                 '}';
     }

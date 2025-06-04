@@ -1,14 +1,17 @@
 package com.example.nsyy.server.controller;
 
+import static com.example.nsyy.server.api.ReturnData.ERROR.FAILED_TO_GET_LOCATION;
 import static com.example.nsyy.server.api.ReturnData.ERROR.UNKNOWN;
 
+import com.example.nsyy.MainActivity;
 import com.example.nsyy.message.FileHelper;
 import com.example.nsyy.server.api.GroupContactParam;
+import com.example.nsyy.server.api.NotificationParam;
 import com.example.nsyy.server.api.ReadChatsParam;
 import com.example.nsyy.server.api.ReadMessagesParam;
-import com.example.nsyy.server.api.UpdateLocalMessageParam;
 import com.example.nsyy.server.api.ReturnData;
 import com.example.nsyy.server.api.WriteMessageParam;
+import com.example.nsyy.utils.NotificationUtil;
 import com.yanzhenjie.andserver.annotation.CrossOrigin;
 import com.yanzhenjie.andserver.annotation.DeleteMapping;
 import com.yanzhenjie.andserver.annotation.GetMapping;
@@ -29,6 +32,40 @@ import java.util.Map;
 @RestController
 public class MessageController {
 
+
+    /**
+     * 现在前端 不主动调用 这个接口，改由socket接收消息，弹框通知并保存消息
+     * @param notification
+     * @return
+     */
+    @CrossOrigin(methods = {RequestMethod.POST})
+    @PostMapping(path = "/notification")
+    public ReturnData notification(@RequestBody NotificationParam notification) {
+        ReturnData returnData = new ReturnData();
+        try {
+            if (!notification.getTitle().isEmpty()) {
+                NotificationUtil.getInstance().createNotificationForHigh(notification.title, notification.context);
+            }
+
+            if (notification.getMessage() != null) {
+                FileHelper.getInstance().notificationSaveToLocal(notification.getIn_chat(),
+                        notification.getCurUserId(), notification.getMessage());
+            }
+            returnData.setSuccess(true);
+            returnData.setCode(20000);
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(FAILED_TO_GET_LOCATION);
+            returnData.setSuccess(false);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("NotificationUtil: " + NotificationUtil.getInstance().toString());
+
+            returnData.setErrorMsg("Failed notification: Please try again later." + sb.toString());
+            return returnData;
+        }
+    }
+
     /**
      * 读取聊天消息
      * @param readMessagesParam
@@ -40,14 +77,6 @@ public class MessageController {
         ReturnData returnData = new ReturnData();
         try {
             System.out.println("MessageController.readMessages: 接收到请求参数: " + readMessagesParam.toString());
-
-            if (readMessagesParam.getUrl() == null || readMessagesParam.getCur_user_id() == null) {
-                returnData.setCode(UNKNOWN);
-                returnData.setSuccess(false);
-                returnData.setErrorMsg("Failed to read chat message, params is "
-                        + readMessagesParam);
-                return returnData;
-            }
 
             Map<String, String> dict = new HashMap<>();
             dict.put("url", readMessagesParam.getUrl());
@@ -61,22 +90,28 @@ public class MessageController {
             dict.put("count", Integer.toString(readMessagesParam.getCount()));
 
             List<Map<String, Object>> messages = null;
-            if (readMessagesParam.getRead_type() == 0) {
-                // 通知
-                messages = FileHelper.getInstance().updateLocalDataAndReturnMsg(0, readMessagesParam.getCur_user_id(), dict);
-            }else if (readMessagesParam.getRead_type() == 1) {
-                // 私聊
-                messages = FileHelper.getInstance().updateLocalDataAndReturnMsg(1, readMessagesParam.getCur_user_id(), dict);
-            } else if (readMessagesParam.getRead_type() == 2) {
-                // 群聊
-                messages = FileHelper.getInstance().updateLocalDataAndReturnMsg(2, readMessagesParam.getCur_user_id(), dict);
-            }
+//            // ===== 消息存本地文件 =====
+//            if (readMessagesParam.getRead_type() == 0) {
+//                // 通知
+//                messages = FileHelper.getInstance().updateLocalDataAndReturnMsg(0, readMessagesParam.getCur_user_id(), dict);
+//            }else if (readMessagesParam.getRead_type() == 1) {
+//                // 私聊
+//                messages = FileHelper.getInstance().updateLocalDataAndReturnMsg(1, readMessagesParam.getCur_user_id(), dict);
+//            } else if (readMessagesParam.getRead_type() == 2) {
+//                // 群聊
+//                messages = FileHelper.getInstance().updateLocalDataAndReturnMsg(2, readMessagesParam.getCur_user_id(), dict);
+//            }
+//            // 更新未读状态
+//            FileHelper.getInstance().updateUnread(readMessagesParam.getRead_type(), readMessagesParam.getCur_user_id(), readMessagesParam.getChat_user_id());
 
-            // 更新未读状态
-            FileHelper.getInstance().updateUnread(readMessagesParam.getRead_type(), readMessagesParam.getCur_user_id(), readMessagesParam.getChat_user_id());
+            // ===== 消息存内嵌数据库 =====
+            messages = MainActivity.getDatabaseHelper().queryMessage(readMessagesParam.getRead_type(),
+                    readMessagesParam.getCur_user_id(), dict);
+            MainActivity.getDatabaseHelper().updateUnread(readMessagesParam.getRead_type(),
+                    readMessagesParam.getCur_user_id(), readMessagesParam.getChat_user_id());
 
             returnData.setSuccess(true);
-            returnData.setCode(200);
+            returnData.setCode(20000);
             returnData.setData(messages);
             return returnData;
         } catch (Exception e) {
@@ -96,10 +131,14 @@ public class MessageController {
         List<Map<String, Object>> result = new ArrayList<>();
         ReturnData returnData = new ReturnData();
         try {
-            int allUnread = FileHelper.getInstance().getLocalContact(readChatsParam.getUser_id(), result);
+//            // ===== 消息存本地文件 =====
+//            int allUnread = FileHelper.getInstance().getLocalContact(readChatsParam.getUser_id(), result);
+
+            // ===== 消息存内嵌数据库 =====
+            int allUnread = MainActivity.getDatabaseHelper().getLocalContact(readChatsParam.getUser_id(), result);
 
             returnData.setSuccess(true);
-            returnData.setCode(200);
+            returnData.setCode(20000);
             returnData.setData(result);
             returnData.setAll_unread(allUnread);
             return returnData;
@@ -110,6 +149,51 @@ public class MessageController {
             return returnData;
         }
     }
+
+    @CrossOrigin(methods = {RequestMethod.DELETE})
+    @DeleteMapping(path = "/delete_db_data")
+    public ReturnData deleteDbData() {
+        ReturnData returnData = new ReturnData();
+        try {
+            System.out.println("MessageController.deleteDbData: 接收到请求参数： ");
+            MainActivity.getDatabaseHelper().clearAllData();
+
+            returnData.setSuccess(true);
+            returnData.setCode(20000);
+            returnData.setData("delete successful");
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(UNKNOWN);
+            returnData.setSuccess(false);
+            returnData.setErrorMsg("Failed to write message");
+            return returnData;
+        }
+    }
+
+
+    @CrossOrigin(methods = {RequestMethod.POST})
+    @PostMapping(path = "/update_unread")
+    public ReturnData updateUnread(@RequestBody ReadMessagesParam readMessagesParam) {
+        ReturnData returnData = new ReturnData();
+        try {
+            System.out.println("MessageController.updateUnread: 接收到请求参数： " + readMessagesParam);
+            MainActivity.getDatabaseHelper().updateUnread(readMessagesParam.getRead_type(),
+                    readMessagesParam.getCur_user_id(), readMessagesParam.getChat_user_id());
+
+            returnData.setSuccess(true);
+            returnData.setCode(20000);
+            returnData.setData("update successful");
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(UNKNOWN);
+            returnData.setSuccess(false);
+            returnData.setErrorMsg("Failed to write message");
+            return returnData;
+        }
+    }
+
+
+
 
     /**
      * 写入消息
@@ -135,32 +219,9 @@ public class MessageController {
             FileHelper.getInstance().sendNotification(writeMessageParam.getChat_type(),
                     writeMessageParam.getChat_user_name(), writeMessageParam.getMsg());
 
-            // 写之前还是需要更新一下，防止本人发送的消息丢失
-            Map<String, String> dict = new HashMap<>();
-            dict.put("url", writeMessageParam.getUrl());
-            if (writeMessageParam.getChat_type() == 0) {
-                // 通知消息
-                dict.put("read_type", writeMessageParam.getChat_type().toString());
-                dict.put("cur_user_id", writeMessageParam.getCur_user_id().toString());
-                dict.put("chat_user_id", writeMessageParam.getChat_user_id().toString());
-                FileHelper.getInstance().updateLocalDataByServer(0, dict, false);
-            } else if (writeMessageParam.getChat_type() == 1) {
-                // 私聊
-                dict.put("read_type", writeMessageParam.getChat_type().toString());
-                dict.put("cur_user_id", writeMessageParam.getCur_user_id().toString());
-                dict.put("chat_user_id", writeMessageParam.getChat_user_id().toString());
-                FileHelper.getInstance().updateLocalDataByServer(1, dict, false);
-            } else if (writeMessageParam.getChat_type() == 2) {
-                // 群聊
-                dict.put("read_type", writeMessageParam.getChat_type().toString());
-                dict.put("cur_user_id", writeMessageParam.getCur_user_id().toString());
-                dict.put("chat_user_id", writeMessageParam.getChat_user_id().toString());
-                FileHelper.getInstance().updateLocalDataByServer(2, dict, false);
-            }
-
             // 将消息写入本地
-            FileHelper.getInstance().writeMessageToLocal(writeMessageParam.getPrev_msg_id(),
-                    writeMessageParam.getCur_user_id(), writeMessageParam.getMsg());
+            FileHelper.getInstance().writeMessageToLocal(writeMessageParam.getCur_user_id(),
+                    writeMessageParam.getMsg());
 
             // 维护联系人，未读状态
             FileHelper.getInstance().updateLocalContact(true, writeMessageParam.getChat_type(),
@@ -169,7 +230,7 @@ public class MessageController {
 
 
             returnData.setSuccess(true);
-            returnData.setCode(200);
+            returnData.setCode(20000);
             returnData.setData("write successful");
             return returnData;
         } catch (Exception e) {
@@ -192,7 +253,7 @@ public class MessageController {
                     param.getGroup_id(), param.getGroup_name(), 1, null);
 
             returnData.setSuccess(true);
-            returnData.setCode(200);
+            returnData.setCode(20000);
             returnData.setData("update successful");
             return returnData;
         } catch (Exception e) {
@@ -202,38 +263,6 @@ public class MessageController {
             return returnData;
         }
     }
-
-
-
-    /**
-     * 更新本地消息
-     * @param updateParam
-     * @return
-     */
-    @CrossOrigin(methods = {RequestMethod.POST})
-    @PostMapping(path = "/update_local_data")
-    public ReturnData updateLocalData(@RequestBody UpdateLocalMessageParam updateParam) {
-        ReturnData returnData = new ReturnData();
-        try {
-            System.out.println("MessageController.updateLocalMessage: 接收到请求参数： " +
-                    updateParam.toString());
-
-            FileHelper.getInstance().synchronousUpdateContactList(updateParam.update_chat_list_url, updateParam.cur_user_id);
-
-            FileHelper.getInstance().asynchronousUpdateMessage(updateParam.update_msg_url, updateParam.cur_user_id);
-
-            returnData.setSuccess(true);
-            returnData.setCode(200);
-            returnData.setData("update successful");
-            return returnData;
-        } catch (Exception e) {
-            returnData.setCode(UNKNOWN);
-            returnData.setSuccess(false);
-            returnData.setErrorMsg("Failed to update local message, params is " + updateParam.toString());
-            return returnData;
-        }
-    }
-
 
 
     @CrossOrigin(methods = {RequestMethod.GET})
@@ -261,7 +290,7 @@ public class MessageController {
 
         ReturnData returnData = new ReturnData();
         returnData.setSuccess(true);
-        returnData.setCode(200);
+        returnData.setCode(20000);
         returnData.setData(linesRead);
         return returnData;
     }
@@ -284,7 +313,7 @@ public class MessageController {
         List<String> fileList = FileHelper.getInstance().getFileList(dir);
         ReturnData returnData = new ReturnData();
         returnData.setSuccess(true);
-        returnData.setCode(200);
+        returnData.setCode(20000);
         returnData.setData(fileList);
         return returnData;
     }
@@ -305,7 +334,7 @@ public class MessageController {
 
         ReturnData returnData = new ReturnData();
         returnData.setSuccess(true);
-        returnData.setCode(200);
+        returnData.setCode(20000);
         returnData.setData("delete ok");
         return returnData;
     }

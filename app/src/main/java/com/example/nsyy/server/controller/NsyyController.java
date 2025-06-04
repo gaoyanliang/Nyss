@@ -90,30 +90,6 @@ public class NsyyController {
         }
     }
 
-    /**
-     * TODO 待确定具体消息格式
-     */
-    @CrossOrigin(methods = {RequestMethod.POST})
-    @PostMapping(path = "/notification")
-    public ReturnData notification(@RequestBody Notification notification) {
-        ReturnData returnData = new ReturnData();
-        try {
-            NotificationUtil.getInstance().createNotificationForHigh(notification.title, notification.context);
-            returnData.setSuccess(true);
-            returnData.setCode(200);
-            return returnData;
-        } catch (Exception e) {
-            returnData.setCode(FAILED_TO_GET_LOCATION);
-            returnData.setSuccess(false);
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("NotificationUtil: " + NotificationUtil.getInstance().toString());
-
-            returnData.setErrorMsg("Failed notification: Please try again later." + sb.toString());
-            return returnData;
-        }
-    }
-
     @CrossOrigin(methods = {RequestMethod.POST})
     @PostMapping(path = "/speech")
     public ReturnData speech(@RequestBody Notification notification) {
@@ -149,30 +125,35 @@ public class NsyyController {
             String username = MySharedPreferences.getSharedPreferences().getString("username", "");
             String password = MySharedPreferences.getSharedPreferences().getString("password", "");
             String version = MySharedPreferences.getSharedPreferences().getString("version", "");
+            int pers_id = MySharedPreferences.getSharedPreferences().getInt("pers_id", 0);
             System.out.println("get user info username: " + username + " password: " + password + " version: " + version);
 
             if (username == "" || password == "") {
-                return new UserInfo(false,"", "", "");
+                return new UserInfo(false,"", "", "", 0);
             }
-            return new UserInfo(true, username, password, version);
+            return new UserInfo(true, username, password, version, pers_id);
         } catch (Exception e) {
-            return new UserInfo(false, "", "", "");
+            return new UserInfo(false, "", "", "", 0);
         }
     }
 
     @CrossOrigin(methods = {RequestMethod.POST})
     @PostMapping(path = "/user")
     public ReturnData save_user_info(@RequestBody UserInfo userInfo) {
+        System.out.println("====》 保存用户名密码" + userInfo.toString());
+
         ReturnData returnData = new ReturnData();
         try {
             String username = "";
             String password = "";
             String version = "";
+            Integer pers_id = 0;
 
             if (userInfo != null) {
                 username = userInfo.getUsername();
                 password = userInfo.getPassword();
                 version = userInfo.getVersion();
+                pers_id = userInfo.getPers_id();
             }
 
             // Storing a setting
@@ -180,9 +161,11 @@ public class NsyyController {
             editor.putString("username", username);
             editor.putString("password", password);
             editor.putString("version", version);
+            editor.putInt("pers_id", pers_id);
             editor.apply();
 
-            System.out.println("save user info username: " + username + " password: " + password + " version: " + version);
+            System.out.println("save user info username: " + username + " password: " +
+                    password + " version: " + version + " pers_id: " + pers_id);
 
             returnData.setSuccess(true);
             returnData.setCode(200);

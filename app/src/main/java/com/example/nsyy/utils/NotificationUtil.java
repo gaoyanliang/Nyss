@@ -49,7 +49,8 @@ public class NotificationUtil {
             if (status == TextToSpeech.SUCCESS) {
                 int result = textToSpeech.setLanguage(Locale.SIMPLIFIED_CHINESE);
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    Toast.makeText(context, "本设备不支持简体中文语音播报", Toast.LENGTH_SHORT).show();
+                    System.out.println("本设备不支持简体中文语音播报");
+//                    Toast.makeText(context, "本设备不支持简体中文语音播报", Toast.LENGTH_SHORT).show();
                 }
 
                 boolean find = false;
@@ -60,15 +61,18 @@ public class NotificationUtil {
                         textToSpeech.setVoice(voice);
                         textToSpeech.setSpeechRate(rate);
                         find = true;
-                        Toast.makeText(context, "Speech Initialization successed", Toast.LENGTH_SHORT).show();
+                        System.out.println("Speech Initialization successed");
+//                        Toast.makeText(context, "Speech Initialization successed", Toast.LENGTH_SHORT).show();
                         break;
                     }
                 }
                 if (find == false) {
-                    Toast.makeText(context, "没有找到名字是 " + name + " 的语音播报人", Toast.LENGTH_SHORT).show();
+                    System.out.println("没有找到名字是 " + name + " 的语音播报人");
+//                    Toast.makeText(context, "没有找到名字是 " + name + " 的语音播报人", Toast.LENGTH_SHORT).show();
                 }
             } else {
-                Toast.makeText(context, "Initialization failed", Toast.LENGTH_SHORT).show();
+                System.out.println("Initialization failed");
+//                Toast.makeText(context, "Initialization failed", Toast.LENGTH_SHORT).show();
             }
         });
     }

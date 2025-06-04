@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.ActivityManager;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -21,13 +22,16 @@ import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.ValueCallback;
 import android.widget.Toast;
 import androidx.core.app.ActivityOptionsCompat;
+import android.content.ActivityNotFoundException;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -41,11 +45,12 @@ import android.util.Base64;
 
 import com.example.nsyy.alarm.LongRunningService;
 import com.example.nsyy.config.MySharedPreferences;
+import com.example.nsyy.config.SocketClient;
 import com.example.nsyy.message.FileHelper;
+import com.example.nsyy.message.MessageDatabaseHelper;
 import com.example.nsyy.service.NsServerService;
 import com.example.nsyy.service.NsyyServerBroadcastReceiver;
 import com.example.nsyy.utils.AppVersionUtil;
-import com.example.nsyy.utils.BlueToothUtil;
 import com.example.nsyy.utils.LocationUtil;
 import com.example.nsyy.utils.NotificationUtil;
 import com.example.nsyy.utils.PermissionUtil;
@@ -55,6 +60,9 @@ import com.huawei.hms.hmsscankit.ScanUtil;
 import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
 import com.king.camera.scan.CameraScan;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -72,6 +80,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static final String TAG = "Nsyy";
 
 //    private static String LOAD_RUL = "http://192.168.124.14:6060";
+//    private static String LOAD_RUL = "http://192.168.124.58:8081/";
+
     private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
 
     private WebView webView;
@@ -80,8 +90,15 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static String last_camera_img_name = null;
     private final static int CAMERA_FILE_RESULT_CODE = 10001;
 
-    private String manufacturer = Build.MANUFACTURER;
-    private String model = Build.MODEL;
+    // 处理文件选择上传
+    private ValueCallback<Uri[]> mFilePathCallback;
+    private static final int REQUEST_CODE_FILE_CHOOSER = 1;
+    private SocketClient socketManager;
+    private static MessageDatabaseHelper dbHelper;
+
+    public static MessageDatabaseHelper getDatabaseHelper() {
+        return dbHelper;
+    }
 
     private final BroadcastReceiver noticeReceiver = new BroadcastReceiver() {
         @Override
@@ -108,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 public void onError(String error) {
                     super.onError(error);
                     Log.e(TAG, error);
-                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_LONG).show();
+//                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_LONG).show();
                 }
             });
 
@@ -116,26 +133,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        dbHelper = MessageDatabaseHelper.getInstance(this);
 
-        AppVersionUtil.getInstance().init(this);
         MySharedPreferences.init(this);
-        // 检查权限: 这里需要开启位置权限 & 位置服务
-        PermissionUtil.checkLocationPermission(this);
-
-        // 消息通知
-        PermissionUtil.checkNotification(this);
-        NotificationUtil.getInstance().setContext(this);
-        NotificationUtil.getInstance().initNotificationChannel();
-
-        FileHelper.getInstance().setContext(this);
-
-        // 检查是否开启位置服务
-        LocationUtil.getInstance().setContext(this);
-        LocationUtil.getInstance().initGPS();
-
-        // 检查是否开启蓝牙权限 & 初始化
-        PermissionUtil.checkBlueToothPermission(this);
-        BlueToothUtil.getInstance().init(this);
 
         // 初始化 WebView
         webView = findViewById(R.id.webView);
@@ -149,6 +149,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 //            showWebsiteChooserDialog();
 //        }
 
+        AppVersionUtil.getInstance().init(this);
+        FileHelper.getInstance().setContext(this);
+
         // 启动定时任务 每十分钟打印一次时间
         Intent intent = new Intent(this, LongRunningService.class);
         startService(intent);
@@ -159,6 +162,53 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 注册广播接收器
         registerReceiver(noticeReceiver, new IntentFilter("LOAD_TARGET_PAGE"));
+
+
+        // 检查权限: 这里需要开启位置权限 & 位置服务
+        PermissionUtil.checkLocationPermission(this);
+        LocationUtil.getInstance().setContext(this);
+        LocationUtil.getInstance().initGPS();
+
+        // 消息通知
+        PermissionUtil.checkNotification(this);
+        NotificationUtil.getInstance().setContext(this);
+        NotificationUtil.getInstance().initNotificationChannel();
+
+//        // 检查是否开启蓝牙权限 & 初始化
+//        PermissionUtil.checkBlueToothPermission(this);
+//        BlueToothUtil.getInstance().init(this);
+
+        // 异步尝试获取有效clientId并连接Socket
+        checkPersIdAndInitializeSocket();
+    }
+
+
+    /**
+     * 当用户登陆之后，保存 pers_id 之后 再连接 socket
+     */
+    private void checkPersIdAndInitializeSocket() {
+        Log.d("===> SocketIO", "Socket initialized");
+        new Thread(() -> {
+            while (true) {
+                int persId = MySharedPreferences.getSharedPreferences().getInt("pers_id", 0);
+                Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
+                if (persId != 0) {
+                    runOnUiThread(() -> {
+                        socketManager = new SocketClient(this, persId);
+                        socketManager.connect();
+                        Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
+                    });
+                    break;
+                }
+
+                try {
+                    // Check every second
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
 
@@ -226,24 +276,55 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // Enable Javascript
         WebSettings webSettings = webView.getSettings();
+        webSettings.setDatabaseEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
-        // 设置允许JS弹窗
-        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
-        // 设置 WebView 允许执行 JavaScript 脚本
-        webSettings.setJavaScriptEnabled(true);
-
-        // Add the JavaScriptInterface to the WebView
-        webView.addJavascriptInterface(this, "AndroidInterface");
-
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true); // 设置允许JS弹窗
+        webSettings.setJavaScriptEnabled(true); // 设置 WebView 允许执行 JavaScript 脚本
         webSettings.setAllowContentAccess(true); // 是否可访问Content Provider的资源，默认值 true
         webSettings.setAllowFileAccess(true);    // 是否可访问本地文件，默认值 true
+        // 对于Android 5+设备
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
+
+        webView.addJavascriptInterface(this, "AndroidInterface");
 
         // 确保跳转到另一个网页时仍然在当前 WebView 中显示,而不是调用浏览器打开
         webView.setWebViewClient(new WebViewClient() {
-//            public void onPageFinished(WebView view, String url) {
-//                swipeRefreshLayout.setRefreshing(false);
-//            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                // 在这里处理页面开始加载的逻辑
+                Log.d("WebView", "开始加载: " + url);
+                // 可以显示进度条等
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                System.out.println("=====> 页面加载完成");
+            }
+
+            @Override
+            public void onLoadResource(WebView view, String url) {
+                super.onLoadResource(view, url);
+                // 每次WebView加载资源时都会调用
+                Log.d("WebView", "正在加载资源: " + url);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                Log.e("WEBVIEW", "加载错误: " + error.getDescription() + " Code: " + error.getErrorCode());
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+                super.onReceivedHttpError(view, request, errorResponse);
+                Log.e("WEBVIEW", "HTTP错误: " + errorResponse.getStatusCode());
+            }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -336,6 +417,40 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     }
                 });
                 b.create().show();
+                return true;
+            }
+
+            // 处理文件选择请求
+            @Override
+            public boolean onShowFileChooser(WebView webView,
+                                             ValueCallback<Uri[]> filePathCallback,
+                                             FileChooserParams fileChooserParams) {
+                // 如果已经有回调未处理，取消它
+                if (mFilePathCallback != null) {
+                    mFilePathCallback.onReceiveValue(null);
+                }
+                mFilePathCallback = filePathCallback;
+
+                // 创建Intent
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("*/*"); // 所有文件类型
+
+                // 可选：设置多选
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+
+                // 可选：限制文件类型
+                // String[] mimeTypes = {"image/*", "application/pdf"};
+                // intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+
+                try {
+                    startActivityForResult(Intent.createChooser(intent, "选择文件"), REQUEST_CODE_FILE_CHOOSER);
+                } catch (ActivityNotFoundException e) {
+                    mFilePathCallback = null;
+                    System.out.println("无法打开文件选择器");
+//                    Toast.makeText(MainActivity.this, "无法打开文件选择器", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
                 return true;
             }
         });
@@ -489,6 +604,15 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onDestroy() {
         super.onDestroy();
         webView.destroy();
+
+        socketManager.disconnect(); // 避免内存泄漏
+
+        // 清理回调
+        if (mFilePathCallback != null) {
+            mFilePathCallback.onReceiveValue(null);
+            mFilePathCallback = null;
+        }
+
         FileHelper.RUN_IN_BACKGROUND = true;
         unregisterReceiver(nsyyServerBroadcastReceiver);
         stopService(new Intent(this, NsServerService.class));//停止服务
@@ -534,6 +658,35 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 //        } else {
 //            newViewBtnClick();
 //        }
+    }
+
+    // 处理从Socket收到的消息
+    public void onSocketMessageReceived(String message) {
+        runOnUiThread(() -> {
+            try {
+                // 假设 message 已经是 JSON 字符串
+                JSONObject jsonObj = new JSONObject(message);
+                // 更安全的 JSON 序列化（推荐）
+                String escapedJson = jsonObj.toString()
+                        .replace("\\", "\\\\")
+                        .replace("'", "\\'")
+                        .replace("\"", "\\\"")
+                        .replace("\n", "\\n");
+
+                webView.evaluateJavascript("javascript:handleSocketMessage('" + escapedJson + "')", new ValueCallback<String>() {
+                    @Override
+                    public void onReceiveValue(String value) {
+                        System.out.println("handleSocketMessage: " + value);
+                    }
+                });
+            } catch (JSONException e) {
+                Log.e("WebView", "JSON解析失败", e);
+                // 回退到字符串处理
+                String safeMsg = message.replace("'", "\\'").replace("\"", "\\\"");
+                String js = String.format("javascript:handleSocketMessage('%s')", safeMsg);
+                webView.loadUrl(js);
+            }
+        });
     }
 
     private void vivoScan(Class<?> cls) {
@@ -598,6 +751,33 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         //receive result after your activity finished scanning
         super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_FILE_CHOOSER) {
+            if (mFilePathCallback == null) return;
+
+            Uri[] results = null;
+            if (resultCode == RESULT_OK) {
+                if (data != null) {
+                    String dataString = data.getDataString();
+                    ClipData clipData = data.getClipData();
+
+                    if (clipData != null) {
+                        // 多选
+                        results = new Uri[clipData.getItemCount()];
+                        for (int i = 0; i < clipData.getItemCount(); i++) {
+                            results[i] = clipData.getItemAt(i).getUri();
+                        }
+                    } else if (dataString != null) {
+                        // 单选
+                        results = new Uri[]{Uri.parse(dataString)};
+                    }
+                }
+            }
+
+            mFilePathCallback.onReceiveValue(results);
+            mFilePathCallback = null;
+        }
+
         if (resultCode != RESULT_OK ) {
             return;
         }
@@ -635,8 +815,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 HmsScan obj = (HmsScan) object;
                 if (obj != null) {
                     String retValue = obj.originalValue;
-                    Toast.makeText(this, retValue, Toast.LENGTH_SHORT).show();
-
                     try {
                         String js = "javascript:receiveScanResult('" + retValue + "')";
                         System.out.println("开始执行 JS 方法：" + js);
@@ -648,12 +826,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                                 System.out.println("成功接收到扫码返回值：" + s);
                             }
                         });
-
-                        //webView.loadUrl("javascript:handleScanResult('" + retValue + "')");
                     } catch (Exception e) {
                         System.out.println("未成功调用 JS 方法 handleScanResult");
                         e.printStackTrace();
-                        // Handle the exception
                     }
                 }
             }
@@ -662,7 +837,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         if (requestCode == REQUEST_CODE_VIVO_SCAN) {
             String result = CameraScan.parseScanResult(data);
             if (result != null) {
-                Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
                 try {
                     String js = "javascript:receiveScanResult('" + result + "')";
                     System.out.println("开始执行 JS 方法：" + js);
@@ -674,12 +848,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                             System.out.println("成功接收到扫码返回值：" + s);
                         }
                     });
-
-                    //webView.loadUrl("javascript:handleScanResult('" + retValue + "')");
                 } catch (Exception e) {
                     System.out.println("未成功调用 JS 方法 handleScanResult");
                     e.printStackTrace();
-                    // Handle the exception
                 }
             }
         }

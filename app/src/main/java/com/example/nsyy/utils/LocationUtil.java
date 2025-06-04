@@ -2,7 +2,6 @@ package com.example.nsyy.utils;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -21,6 +20,9 @@ import com.example.nsyy.permission.NsyyLocationListener;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 获取手机当前位置
@@ -30,7 +32,16 @@ public class LocationUtil {
     private LocationManager locationManager;
     private Context context;
     private AddressCallback addressCallback;
-    private NsyyLocationListener locationListener = new NsyyLocationListener();
+    private NsyyLocationListener locationListener;
+
+    // 定位超时时间(秒)
+    private static final int LOCATION_TIMEOUT = 30;
+    // 最小定位精度(米)
+    private static final int MIN_ACCURACY = 50;
+    // 最小位置更新间隔(毫秒)
+    private static final long MIN_TIME = 1000;
+    // 最小位置变化距离(米)
+    private static final float MIN_DISTANCE = 5;
 
     @Override
     public String toString() {
@@ -46,27 +57,6 @@ public class LocationUtil {
 
     }
 
-    public void setContext(Context context) {
-        this.context = context;
-        addressCallback = new LocationUtil.AddressCallback() {
-            @Override
-            public void onGetAddress(Address address) {
-                String countryName = address.getCountryName();//国家
-                String adminArea = address.getAdminArea();//省
-                String locality = address.getLocality();//市
-                String subLocality = address.getSubLocality();//区
-                String featureName = address.getFeatureName();//街道
-                Log.e("定位地址: ",countryName+adminArea+locality+subLocality+featureName);
-            }
-
-            @Override
-            public void onGetLocation(double lat, double lng) {
-                Log.e("定位经纬度: ",lat + "\n" + lng);
-            }
-        };
-        this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-    }
-
     //采用Double CheckLock(DCL)实现单例
     public static LocationUtil getInstance() {
         if (uniqueInstance == null) {
@@ -79,158 +69,258 @@ public class LocationUtil {
         return uniqueInstance;
     }
 
-    public Location getLocation(boolean turnOnGPS) {
-        // 检查位置权限
-        PermissionUtil.checkLocationPermission(context);
-        Location location = null;
+    public void setContext(Context context) {
+        this.context = context;
+        this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        this.locationListener = new NsyyLocationListener();
 
-        if (gpsEnabled() && getGPSLocation(locationManager) != null) {
-            //GPS 定位的精准度比较高，但是非常耗电。
-            System.out.println("=====GPS_PROVIDER=====");
-
-            // 获取上次的位置，一般第一次运行，此值为null
-            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
-            // 监视地理位置变化，第二个和第三个参数分别为更新的最短时间minTime和最短距离minDistace
-            //LocationManager 每隔 5 秒钟会检测一下位置的变化情况，当移动距离超过 10 米的时候，
-            // 就会调用 LocationListener 的 onLocationChanged() 方法，并把新的位置信息作为参数传入。
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
-
-        } else if (netWorkEnabled() && getNetWorkLocation(locationManager) != null) {//Google服务被墙不可用
-            //网络定位的精准度稍差，但耗电量比较少。
-            System.out.println("=====NETWORK_PROVIDER=====");
-
-            //从网络获取经纬度
-            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 50000, 10, locationListener, Looper.getMainLooper());
-        } else {
-            System.out.println("=====NO_PROVIDER=====");
-            if (turnOnGPS) {
-                initGPS();
+        this.addressCallback = new AddressCallback() {
+            @Override
+            public void onGetAddress(Address address) {
+                String countryName = address.getCountryName(); //国家
+                String adminArea = address.getAdminArea();     //省
+                String locality = address.getLocality();       //市
+                String subLocality = address.getSubLocality(); //区
+                String featureName = address.getFeatureName(); //街道
+                Log.e("定位地址: ", countryName + adminArea + locality + subLocality + featureName);
             }
-        }
 
-        // 由于第一次访问 getLastKnownLocation， 或者手机处于室内，或者信号不好 获取的 location 有可能为空，，所以需要主动去进行位置更新
-        if (gpsEnabled()) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
-        }
-        if (netWorkEnabled()) {
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, locationListener, Looper.getMainLooper());
-        }
-
-        return location;
+            @Override
+            public void onGetLocation(double lat, double lng) {
+                Log.e("定位经纬度: ", lat + "\n" + lng);
+            }
+        };
+        this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
     }
 
-    private boolean gpsEnabled() {
+    /**
+     * 获取最新位置（强制刷新）
+     */
+    public Location getLocation(boolean turnOnGPS) {
+        // 检查位置权限
+        if (!checkLocationPermission()) {
+            Log.e("LocationUtil", "Location permission not granted");
+            return null;
+        }
+
+        // 尝试开启GPS
+        if (turnOnGPS && !isGpsEnabled()) {
+            initGPS();
+        }
+
+        // 使用原子引用保存最新位置
+        AtomicReference<Location> bestLocation = new AtomicReference<>(null);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        // 创建临时位置监听器
+        NsyyLocationListener tempListener = new NsyyLocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                if (location != null && (bestLocation.get() == null ||
+                        location.getAccuracy() < bestLocation.get().getAccuracy())) {
+                    bestLocation.set(location);
+
+                    // 达到精度要求则停止等待
+                    if (location.getAccuracy() <= MIN_ACCURACY) {
+                        latch.countDown();
+                    }
+                }
+            }
+        };
+
+        try {
+            // 注册位置更新
+            if (isGpsEnabled()) {
+                locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        MIN_TIME,
+                        MIN_DISTANCE,
+                        tempListener,
+                        Looper.getMainLooper()
+                );
+            }
+
+            if (isNetworkEnabled()) {
+                locationManager.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER,
+                        MIN_TIME * 3, // 网络定位更新间隔稍长
+                        MIN_DISTANCE * 2,
+                        tempListener,
+                        Looper.getMainLooper()
+                );
+            }
+
+            // 同时尝试获取最后已知位置作为初始值
+            Location lastGpsLoc = getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            Location lastNetLoc = getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+            if (lastGpsLoc != null && (bestLocation.get() == null ||
+                    lastGpsLoc.getAccuracy() < bestLocation.get().getAccuracy())) {
+                bestLocation.set(lastGpsLoc);
+            }
+
+            if (lastNetLoc != null && (bestLocation.get() == null ||
+                    lastNetLoc.getAccuracy() < bestLocation.get().getAccuracy())) {
+                bestLocation.set(lastNetLoc);
+            }
+
+            // 等待获取足够精确的位置或超时
+            latch.await(LOCATION_TIMEOUT, TimeUnit.SECONDS);
+
+        } catch (InterruptedException e) {
+            Log.e("LocationUtil", "Location update interrupted", e);
+            Thread.currentThread().interrupt();
+        } finally {
+            // 确保移除监听器
+            locationManager.removeUpdates(tempListener);
+        }
+
+        return bestLocation.get();
+    }
+
+    /**
+     * 获取最后已知位置（不保证是最新的）
+     */
+    private Location getLastKnownLocation(String provider) {
+        if (!checkLocationPermission()) {
+            return null;
+        }
+
+        try {
+            Location location = locationManager.getLastKnownLocation(provider);
+            if (location != null && location.getAccuracy() <= MIN_ACCURACY * 2) {
+                return location;
+            }
+        } catch (SecurityException e) {
+            Log.e("LocationUtil", "No location permission", e);
+        }
+        return null;
+    }
+
+    private boolean checkLocationPermission() {
+        return ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean isGpsEnabled() {
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
-    private boolean netWorkEnabled() {
+    private boolean isNetworkEnabled() {
         return locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
 
-    private Location getGPSLocation(LocationManager locationManager) {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return null;
-        }
-        return locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-    }
-
-    private Location getNetWorkLocation(LocationManager locationManager) {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return null;
-        }
-        return locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-    }
-
     /**
-     * 判断GPS是否开启
+     * 初始化GPS设置
      */
     public void initGPS() {
-        List<String> allProviders = locationManager.getAllProviders();
-        if (!allProviders.contains(LocationManager.GPS_PROVIDER)) {
-            // 如果不支持 gps ，则通过 network 判断
-            if(!locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
-                openGPSDialog();
-            }
-        } else {
-            //判断GPS是否开启，没有开启，则开启
-            if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-                openGPSDialog();
-            }
+        if (!isGpsEnabled() && !isNetworkEnabled()) {
+            openGPSDialog();
         }
-
     }
 
     /**
-     * 打开GPS对话框
+     * 打开GPS设置对话框
      */
     private void openGPSDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("提示")
-                .setMessage("打开定位功能，可以提高定位精确度。 \n 请点击\"设置\"-\"定位服务\"-打开定位功能。")
-                .setPositiveButton("设置", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //跳转到手机打开GPS页面
-                        Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                        context.startActivity(intent);
-                    }
+        new AlertDialog.Builder(context)
+                .setTitle("提示")
+                .setMessage("打开定位功能，可以提高定位精确度。\n请点击\"设置\"-\"定位服务\"-打开定位功能。")
+                .setPositiveButton("设置", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    context.startActivity(intent);
                 })
-                .setNeutralButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        dialogInterface.dismiss();
-                    }
-                }).show();
+                .setNeutralButton("取消", (dialog, which) -> dialog.dismiss())
+                .show();
     }
 
     /**
-     * 将 location 转换为具体地址 TODO 这里需要根据前端需求确定返回类型
-     * @param location
-     * @return
+     * 将位置转换为地址
      */
     public String getAddress(Location location) {
         if (location == null) {
             return "unknown address";
         }
 
-        //Geocoder通过经纬度获取具体信息
         Geocoder gc = new Geocoder(context, Locale.getDefault());
         try {
-            List<Address> locationList = gc.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+            List<Address> locationList = gc.getFromLocation(
+                    location.getLatitude(),
+                    location.getLongitude(),
+                    1
+            );
 
-            String ret_address = "";
-            if (locationList != null && locationList.size() > 0) {
+            if (locationList != null && !locationList.isEmpty()) {
                 Address address = locationList.get(0);
-//                String countryName = address.getCountryName();//国家
-//                String countryCode = address.getCountryCode();
-//                String adminArea = address.getAdminArea();//省
-//                String locality = address.getLocality();//市
-//                String subLocality = address.getSubLocality();//区
-//                String featureName = address.getFeatureName();//街道
+                StringBuilder retAddress = new StringBuilder();
 
                 for (int i = 0; address.getAddressLine(i) != null; i++) {
-                    ret_address = ret_address + address.getAddressLine(i);
-                    String addressLine = address.getAddressLine(i);
-                    System.out.println("addressLine=====" + addressLine);
+                    retAddress.append(address.getAddressLine(i));
+                    Log.d("AddressLine", address.getAddressLine(i));
                 }
-                if(addressCallback != null){
+
+                if (addressCallback != null) {
                     addressCallback.onGetAddress(address);
+                    addressCallback.onGetLocation(
+                            location.getLatitude(),
+                            location.getLongitude()
+                    );
                 }
-                return ret_address;
+
+                return retAddress.toString();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("LocationUtil", "Geocoder error", e);
         }
         return null;
     }
 
-    public interface AddressCallback{
+    public interface AddressCallback {
         void onGetAddress(Address address);
-        void onGetLocation(double lat,double lng);
+        void onGetLocation(double lat, double lng);
     }
 }
+
+//    /**
+//     * 将 location 转换为具体地址 TODO 这里需要根据前端需求确定返回类型
+//     * @param location
+//     * @return
+//     */
+//    public String getAddress(Location location) {
+//        if (location == null) {
+//            return "unknown address";
+//        }
+//
+//        //Geocoder通过经纬度获取具体信息
+//        Geocoder gc = new Geocoder(context, Locale.getDefault());
+//        try {
+//            List<Address> locationList = gc.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+//
+//            String ret_address = "";
+//            if (locationList != null && locationList.size() > 0) {
+//                Address address = locationList.get(0);
+////                String countryName = address.getCountryName();//国家
+////                String countryCode = address.getCountryCode();
+////                String adminArea = address.getAdminArea();//省
+////                String locality = address.getLocality();//市
+////                String subLocality = address.getSubLocality();//区
+////                String featureName = address.getFeatureName();//街道
+//
+//                for (int i = 0; address.getAddressLine(i) != null; i++) {
+//                    ret_address = ret_address + address.getAddressLine(i);
+//                    String addressLine = address.getAddressLine(i);
+//                    System.out.println("addressLine=====" + addressLine);
+//                }
+//                if(addressCallback != null){
+//                    addressCallback.onGetAddress(address);
+//                }
+//                return ret_address;
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        return null;
+//    }
+
+
 
