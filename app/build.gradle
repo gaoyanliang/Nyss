@@ -27,8 +27,21 @@ android {
         }
     }
 
+    signingConfigs {
+        config {
+            // 根据您实际的签名信息，替换以下参数中的xxxx
+            keyAlias 'generateapk'
+            keyPassword '123456'
+            storeFile file('/Users/gaoyanliang/nsyy/android/APK/GenerateAPK.jks')
+            storePassword '123456'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.config
+        }
         release {
+            signingConfig signingConfigs.config
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -50,8 +63,6 @@ def generateTime() {
 }
 
 dependencies {
-
-    implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.8.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     testImplementation 'junit:junit:4.13.2'
@@ -67,7 +78,7 @@ dependencies {
 
     // 谷歌兼容库：https://developer.android.google.cn/jetpack/androidx/releases/appcompat?hl=zh-cn
     // noinspection GradleCompatible
-    implementation 'androidx.appcompat:appcompat:1.0.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 
     // 吐司框架：https://github.com/getActivity/Toaster
     implementation 'com.github.getActivity:Toaster:12.3'
@@ -95,4 +106,8 @@ dependencies {
     implementation ('io.socket:socket.io-client:2.1.0') {
         exclude group: 'org.json', module: 'json' // 避免与 Android 内置 org.json 冲突
     }
+
+    implementation 'com.huawei.hms:push:6.13.0.300'
+    // 添加HMS Core Installer SDK编译依赖，自动引导用户下载HMS Core APK。
+    implementation 'com.huawei.hms:hmscoreinstaller:6.7.0.300'
 }

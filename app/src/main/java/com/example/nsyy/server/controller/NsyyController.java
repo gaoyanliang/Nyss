@@ -23,6 +23,7 @@ import com.yanzhenjie.andserver.annotation.RequestParam;
 import com.yanzhenjie.andserver.annotation.RestController;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.os.Build;
 
 import java.io.IOException;
 
@@ -125,15 +126,17 @@ public class NsyyController {
             String username = MySharedPreferences.getSharedPreferences().getString("username", "");
             String password = MySharedPreferences.getSharedPreferences().getString("password", "");
             String version = MySharedPreferences.getSharedPreferences().getString("version", "");
+            String token = MySharedPreferences.getSharedPreferences().getString("token", "");
+            String brand = MySharedPreferences.getSharedPreferences().getString("brand", "");
             int pers_id = MySharedPreferences.getSharedPreferences().getInt("pers_id", 0);
             System.out.println("get user info username: " + username + " password: " + password + " version: " + version);
 
             if (username == "" || password == "") {
-                return new UserInfo(false,"", "", "", 0);
+                return new UserInfo(false,"", "", "", 0, token, Build.BRAND);
             }
-            return new UserInfo(true, username, password, version, pers_id);
+            return new UserInfo(true, username, password, version, pers_id, token, brand);
         } catch (Exception e) {
-            return new UserInfo(false, "", "", "", 0);
+            return new UserInfo(false, "", "", "", 0, "", Build.BRAND);
         }
     }
 
@@ -162,6 +165,7 @@ public class NsyyController {
             editor.putString("password", password);
             editor.putString("version", version);
             editor.putInt("pers_id", pers_id);
+            editor.putString("brand", Build.BRAND);
             editor.apply();
 
             System.out.println("save user info username: " + username + " password: " +

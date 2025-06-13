@@ -89,6 +89,16 @@
             </intent-filter>
         </activity>
 
+        <meta-data
+            android:name="push_kit_auto_init_enabled"
+            android:value="true"/>
+
+        <service android:name=".service.NsyyHmsMessageService" android:exported="false" android:directBootAware="true">
+            <intent-filter>
+                <action android:name="com.huawei.push.action.MESSAGING_EVENT"/>
+            </intent-filter>
+        </service>
+
         <service
             android:name=".service.NsServerService"
             android:enabled="true"

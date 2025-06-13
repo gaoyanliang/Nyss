@@ -17,6 +17,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
@@ -56,9 +57,12 @@ import com.example.nsyy.utils.NotificationUtil;
 import com.example.nsyy.utils.PermissionUtil;
 
 import com.example.nsyy.vivo_scan.VivoQRCodeScanActivity;
+import com.huawei.hms.aaid.HmsInstanceId;
+import com.huawei.hms.common.ApiException;
 import com.huawei.hms.hmsscankit.ScanUtil;
 import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
+import com.huawei.hms.push.HmsMessaging;
 import com.king.camera.scan.CameraScan;
 
 import org.json.JSONException;
@@ -79,10 +83,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static final int CAMERA_PERMISSION_REQUEST_CODE= 777;
     public static final String TAG = "Nsyy";
 
-//    private static String LOAD_RUL = "http://192.168.124.14:6060";
+    private static String LOAD_RUL = "http://192.168.124.22:5173";
 //    private static String LOAD_RUL = "http://192.168.124.58:8081/";
 
-    private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
+//    private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
+//    private static String LOAD_RUL = "http://192.168.3.12:6060";
 
     private WebView webView;
 //    private SwipeRefreshLayout swipeRefreshLayout;
@@ -180,6 +185,41 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 异步尝试获取有效clientId并连接Socket
         checkPersIdAndInitializeSocket();
+
+        setAutoInitEnabled(true);
+    }
+
+    private void setAutoInitEnabled(final boolean isEnable) {
+        if(isEnable){
+            // 设置自动初始化
+            HmsMessaging.getInstance(this).setAutoInitEnabled(true);
+        } else {
+            // 禁止自动初始化
+            HmsMessaging.getInstance(this).setAutoInitEnabled(false);
+        }
+    }
+
+    private void deleteToken() {
+        // 创建一个新线程
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    // 从agconnect-services.json文件中读取APP_ID
+                    String appId = "109560375";
+
+                    // 输入token标识"HCM"
+                    String tokenScope = "HCM";
+
+
+                    // 注销Token
+                    HmsInstanceId.getInstance(webView.getContext()).deleteToken(appId, tokenScope);
+                    Log.i(TAG, "token deleted successfully");
+                } catch (ApiException e) {
+                    Log.e(TAG, "delete token failed." + e);
+                }
+            }
+        }.start();
     }
 
 

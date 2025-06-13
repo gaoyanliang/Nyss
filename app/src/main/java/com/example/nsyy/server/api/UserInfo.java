@@ -8,6 +8,17 @@ public class UserInfo {
 
     public String password;
     public Integer pers_id;
+    public String device_token;
+
+    public String brand;
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
 
     public boolean isHasValue() {
         return hasValue;
@@ -30,12 +41,22 @@ public class UserInfo {
     public UserInfo() {
     }
 
-    public UserInfo(boolean hasValue, String username, String password, String version, Integer pers_id) {
+    public String getDevice_token() {
+        return device_token;
+    }
+
+    public void setDevice_token(String device_token) {
+        this.device_token = device_token;
+    }
+
+    public UserInfo(boolean hasValue, String username, String password, String version, Integer pers_id, String device_token, String brand) {
         this.hasValue = hasValue;
         this.username = username;
         this.password = password;
         this.version = version;
         this.pers_id = pers_id;
+        this.device_token = device_token;
+        this.brand = brand;
     }
 
     public String getUsername() {
@@ -70,6 +91,8 @@ public class UserInfo {
                 ", password='" + password + '\'' +
                 ", pers_id=" + pers_id +
                 ", version='" + version + '\'' +
+                ", device_token='" + device_token + '\'' +
+                ", brand='" + brand + '\'' +
                 '}';
     }
 }

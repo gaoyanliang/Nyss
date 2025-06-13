@@ -533,3 +533,33 @@ private void bringWebViewActivityToFront() {
 5. 
 
 
+## 接入华为推送
+
+### 接入 Android
+
+https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/android-app-version-0000001074227861
+
+### 接入 iOS 
+
+https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/ios-dev-prepare-0000001062940204
+
+Name:HMS PUSH
+Key ID:RD2863A73D
+Services:Apple Push Notifications service (APNs)
+
+会员资格详细信息
+团队 ID  KL924NUZZD
+计划 Apple Developer Program
+注册身份 个人
+电话 8618710094312
+街道地址 China mainland Henan Nanyang Wancheng District No. 50, Changjiang Road 473000
+续订日期 2025 年 10 月 23 日
+年费 RMB688
+
+
+证书密钥 gyl.2015
+
+
+
+
+

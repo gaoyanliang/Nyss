@@ -163,7 +163,7 @@ public class NotificationUtil {
             // 重要等级的不同则会决定通知的不同行为，重要等级还可以设置为IMPORTANCE_LOW、IMPORTANCE_MIN，分别对应了更低的通知重要程度。
 
             // 重要消息
-            createNotificationChannel( true, mHighChannelId, mHignChannelName, NotificationManager.IMPORTANCE_HIGH);
+            createNotificationChannel( true, mHighChannelId, mHignChannelName, NotificationManager.IMPORTANCE_DEFAULT);
         }
     }
 

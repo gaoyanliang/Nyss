@@ -8,7 +8,9 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.1.1'
         classpath 'com.yanzhenjie.andserver:plugin:2.1.12'
-        classpath 'com.huawei.agconnect:agcp:1.5.2.300'
+
+        // 增加AGC插件配置，请您参见[AGC插件依赖关系](https://developer.huawei.com/consumer/cn/doc/development/AppGallery-connect-Guides/agc-sdk-changenotes-0000001058732550#section7117746172220)选择合适的AGC插件版本。
+        classpath 'com.huawei.agconnect:agcp:1.9.1.301'
     }
 }
 
