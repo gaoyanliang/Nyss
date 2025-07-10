@@ -17,7 +17,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
@@ -83,14 +82,13 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static final int CAMERA_PERMISSION_REQUEST_CODE= 777;
     public static final String TAG = "Nsyy";
 
-//    private static String LOAD_RUL = "http://192.168.124.22:5173";
+    private static String LOAD_RUL = "http://192.168.124.14:6060";
 //    private static String LOAD_RUL = "http://192.168.124.58:8081/";
 
-    private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
+//    private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
 //    private static String LOAD_RUL = "http://192.168.3.12:6060";
 
     private WebView webView;
-//    private SwipeRefreshLayout swipeRefreshLayout;
 
     public static String last_camera_img_name = null;
     private final static int CAMERA_FILE_RESULT_CODE = 10001;
@@ -130,7 +128,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 public void onError(String error) {
                     super.onError(error);
                     Log.e(TAG, error);
-//                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_LONG).show();
                 }
             });
 
@@ -145,14 +142,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // 初始化 WebView
         webView = findViewById(R.id.webView);
         loadWebsite(2);
-//        String loadUrl = MySharedPreferences.getSharedPreferences().getString("load_url", "");
-//        if (!loadUrl.isEmpty() && !loadUrl.equals("")) {
-//            LOAD_RUL = loadUrl;
-//            initView();
-//        } else {
-//            // Ask the user to choose a website
-//            showWebsiteChooserDialog();
-//        }
 
         AppVersionUtil.getInstance().init(this);
         FileHelper.getInstance().setContext(this);
@@ -207,11 +196,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 try {
                     // 从agconnect-services.json文件中读取APP_ID
                     String appId = "109560375";
-
                     // 输入token标识"HCM"
                     String tokenScope = "HCM";
-
-
                     // 注销Token
                     HmsInstanceId.getInstance(webView.getContext()).deleteToken(appId, tokenScope);
                     Log.i(TAG, "token deleted successfully");

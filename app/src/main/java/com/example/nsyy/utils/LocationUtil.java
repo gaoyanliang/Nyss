@@ -16,6 +16,15 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 
 import com.example.nsyy.permission.NsyyLocationListener;
+import com.huawei.hms.location.FusedLocationProviderClient;
+import com.huawei.hms.location.LocationCallback;
+import com.huawei.hms.location.LocationRequest;
+import com.huawei.hms.location.LocationResult;
+import com.huawei.hms.location.LocationServices;
+import com.huawei.hms.location.LocationSettingsRequest;
+import com.huawei.hms.location.LocationSettingsStates;
+import com.huawei.hms.location.SettingsClient;
+import com.huawei.location.lite.common.util.country.CountryCodeUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,11 +37,15 @@ import java.util.concurrent.atomic.AtomicReference;
  * 获取手机当前位置
  */
 public class LocationUtil {
+    private static final String TAG = "LocationUtil";
     private volatile static LocationUtil uniqueInstance;
     private LocationManager locationManager;
     private Context context;
     private AddressCallback addressCallback;
     private NsyyLocationListener locationListener;
+
+    private FusedLocationProviderClient fusedLocationProviderClient;
+    private static Location huaweiLocation = null;
 
     // 定位超时时间(秒)
     private static final int LOCATION_TIMEOUT = 30;
@@ -82,15 +95,17 @@ public class LocationUtil {
                 String locality = address.getLocality();       //市
                 String subLocality = address.getSubLocality(); //区
                 String featureName = address.getFeatureName(); //街道
-                Log.e("定位地址: ", countryName + adminArea + locality + subLocality + featureName);
+                Log.e(TAG, countryName + adminArea + locality + subLocality + featureName);
             }
 
             @Override
             public void onGetLocation(double lat, double lng) {
-                Log.e("定位经纬度: ", lat + "\n" + lng);
+                Log.e(TAG, lat + ", " + lng);
             }
         };
         this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+
+        huawei_location(context);
     }
 
     /**
@@ -101,6 +116,10 @@ public class LocationUtil {
         if (!checkLocationPermission()) {
             Log.e("LocationUtil", "Location permission not granted");
             return null;
+        }
+
+        if (huaweiLocation != null) {
+            return huaweiLocation;
         }
 
         // 尝试开启GPS
@@ -256,7 +275,7 @@ public class LocationUtil {
 
                 for (int i = 0; address.getAddressLine(i) != null; i++) {
                     retAddress.append(address.getAddressLine(i));
-                    Log.d("AddressLine", address.getAddressLine(i));
+                    Log.d(TAG, address.getAddressLine(i));
                 }
 
                 if (addressCallback != null) {
@@ -270,7 +289,7 @@ public class LocationUtil {
                 return retAddress.toString();
             }
         } catch (IOException e) {
-            Log.e("LocationUtil", "Geocoder error", e);
+            Log.e(TAG, "Geocoder error", e);
         }
         return null;
     }
@@ -279,48 +298,73 @@ public class LocationUtil {
         void onGetAddress(Address address);
         void onGetLocation(double lat, double lng);
     }
-}
 
-//    /**
-//     * 将 location 转换为具体地址 TODO 这里需要根据前端需求确定返回类型
-//     * @param location
-//     * @return
-//     */
-//    public String getAddress(Location location) {
-//        if (location == null) {
-//            return "unknown address";
-//        }
-//
-//        //Geocoder通过经纬度获取具体信息
-//        Geocoder gc = new Geocoder(context, Locale.getDefault());
-//        try {
-//            List<Address> locationList = gc.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-//
-//            String ret_address = "";
-//            if (locationList != null && locationList.size() > 0) {
-//                Address address = locationList.get(0);
-////                String countryName = address.getCountryName();//国家
-////                String countryCode = address.getCountryCode();
-////                String adminArea = address.getAdminArea();//省
-////                String locality = address.getLocality();//市
-////                String subLocality = address.getSubLocality();//区
-////                String featureName = address.getFeatureName();//街道
-//
-//                for (int i = 0; address.getAddressLine(i) != null; i++) {
-//                    ret_address = ret_address + address.getAddressLine(i);
-//                    String addressLine = address.getAddressLine(i);
-//                    System.out.println("addressLine=====" + addressLine);
-//                }
-//                if(addressCallback != null){
-//                    addressCallback.onGetAddress(address);
-//                }
-//                return ret_address;
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return null;
-//    }
+    private void huawei_location(Context context) {
+        // 实例化fusedLocationProviderClient对象
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context);
+        LocationRequest mLocationRequest = new LocationRequest()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY) // 同时启用GPS和网络
+                .setInterval(1 * 60 * 1000)  // 5秒更新间隔
+                .setNeedAddress(true)
+                .setCountryCode(CountryCodeUtil.getCountryCode())
+                .setSmallestDisplacement(10.0f) // 移动至少1米触发更新
+                .setMaxWaitTime(10000); // 最多等待10秒
+
+        LocationSettingsRequest locationSettingsRequest = new LocationSettingsRequest.Builder()
+                .addLocationRequest(mLocationRequest).build();
+        SettingsClient settingsClient = LocationServices.getSettingsClient(context);
+
+        // 检查设备定位设置
+        settingsClient.checkLocationSettings(locationSettingsRequest)
+                // 检查设备定位设置接口调用成功监听
+                .addOnSuccessListener(locationSettingsResponse -> {
+                    LocationSettingsStates locationSettingsStates =
+                            locationSettingsResponse.getLocationSettingsStates();
+                    StringBuilder stringBuilder = new StringBuilder();
+                    // 定位开关是否打开
+                    stringBuilder.append(",isLocationUsable=")
+                            .append(locationSettingsStates.isLocationUsable());
+                    // HMS Core是否可用
+                    stringBuilder.append(",isHMSLocationUsable=")
+                            .append(locationSettingsStates.isHMSLocationUsable());
+                    Log.i(TAG, "====> checkLocationSetting onComplete:" + stringBuilder.toString());
+                })
+                // 检查设备定位设置接口失败监听回调
+                .addOnFailureListener(e -> Log.i(TAG, "====> checkLocationSetting onFailure:" + e.getMessage()));
+
+
+        fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, new LocationCallback() {
+                    @Override
+                    public void onLocationResult(LocationResult locationResult) {
+                        if (locationResult != null) {
+                            Location location = locationResult.getLastLocation();
+                            if (location != null) {
+                                if (location.hasAccuracy() && location.getAccuracy() <= 50.0f) { // 精度≤15米才采纳
+                                    Log.i(TAG, "====> 坐标 准确度:" + location.hasAccuracy() + "," + location.getAccuracy());
+                                    huaweiLocation = location;
+                                }
+                            }
+                            Log.i(TAG, "====> 新定位地址:" + location.toString());
+                        }
+                    }
+                }, Looper.getMainLooper())
+                .addOnSuccessListener(aVoid -> Log.i(TAG, "====> 华为定位接口调用成功" ))
+                .addOnFailureListener(e -> Log.i(TAG, "====> 华为定位接口调用失败" ));
+
+        // 获取最后的已知位置
+        fusedLocationProviderClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location == null) {
+                return;
+            }
+            huaweiLocation = location;
+            Log.i(TAG, "====> 获取最后的已知位置成功监听回调" + location.toString() );
+        }).addOnFailureListener(e -> {
+            huaweiLocation = null;
+            Log.i(TAG, "获取最后的已知位置失败监听回调:" + e.getMessage());
+        });
+    }
+
+}
 
 
 
