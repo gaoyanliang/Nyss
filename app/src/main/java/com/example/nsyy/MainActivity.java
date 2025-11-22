@@ -628,8 +628,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        webView.loadUrl("about:blank");
         webView.destroy();
+        super.onDestroy();
 
         socketManager.disconnect(); // 避免内存泄漏
 
