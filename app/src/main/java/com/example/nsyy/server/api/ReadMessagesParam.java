@@ -8,18 +8,27 @@ public class ReadMessagesParam {
     public Integer chat_user_id;
     public Integer start;
     public Integer count;
+    public String keyword;
+    public String start_time_str;
+    public String end_time_str;
+
 
     public ReadMessagesParam() {
 
     }
 
-    public ReadMessagesParam(String url, Integer cur_user_id, Integer chat_user_id, Integer read_type, Integer start, Integer count) {
+    public ReadMessagesParam(String url, Integer cur_user_id, Integer chat_user_id,
+                             Integer read_type, Integer start, Integer count, String keyword,
+                             String start_time_str, String end_time_str) {
         this.url = url;
         this.cur_user_id = cur_user_id;
         this.chat_user_id = chat_user_id;
         this.read_type = read_type;
         this.start = start;
         this.count = count;
+        this.keyword = keyword;
+        this.start_time_str = start_time_str;
+        this.end_time_str = end_time_str;
     }
 
     public String getUrl() {
@@ -70,15 +79,42 @@ public class ReadMessagesParam {
         this.count = count;
     }
 
+    public String getKeyword() {
+        return keyword;
+    }
+
+    public void setKeyword(String keyword) {
+        this.keyword = keyword;
+    }
+
+    public String getStart_time_str() {
+        return start_time_str;
+    }
+
+    public void setStart_time_str(String start_time_str) {
+        this.start_time_str = start_time_str;
+    }
+
+    public String getEnd_time_str() {
+        return end_time_str;
+    }
+
+    public void setEnd_time_str(String end_time_str) {
+        this.end_time_str = end_time_str;
+    }
+
     @Override
     public String toString() {
-        return "ReadChatMessageParam{" +
+        return "ReadMessagesParam{" +
                 "url='" + url + '\'' +
+                ", read_type=" + read_type +
                 ", cur_user_id=" + cur_user_id +
                 ", chat_user_id=" + chat_user_id +
-                ", read_type=" + read_type +
                 ", start=" + start +
                 ", count=" + count +
+                ", keyword='" + keyword + '\'' +
+                ", start_time_str='" + start_time_str + '\'' +
+                ", end_time_str='" + end_time_str + '\'' +
                 '}';
     }
 }

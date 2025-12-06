@@ -26,6 +26,7 @@ import android.location.Location;
 import android.os.Build;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 @RestController
 public class NsyyController {
@@ -66,30 +67,91 @@ public class NsyyController {
      * TODO 待确定具体地址格式
      * @return
      */
+//    @CrossOrigin(methods = {RequestMethod.GET})
+//    @GetMapping("/location")
+//    public ReturnData location() {
+//        ReturnData returnData = new ReturnData();
+//        try {
+//            Location local = LocationUtil.getInstance().getLocation(true);
+//            String address = LocationUtil.getInstance().getAddress(local);
+//            returnData.setSuccess(true);
+//            returnData.setCode(200);
+//            returnData.setData(address);
+//            returnData.setLatitude(local.getLatitude());
+//            returnData.setLongitude(local.getLongitude());
+//            return returnData;
+//        } catch (Exception e) {
+//            returnData.setCode(FAILED_TO_GET_LOCATION);
+//            returnData.setSuccess(false);
+//
+//            StringBuilder sb = new StringBuilder();
+//            sb.append("LocationUtil: " + LocationUtil.getInstance().toString());
+//
+//            returnData.setErrorMsg("Failed to get location: Please enable location service first.\n" + sb.toString());
+//            return returnData;
+//        }
+//    }
+
+
     @CrossOrigin(methods = {RequestMethod.GET})
     @GetMapping("/location")
     public ReturnData location() {
-        ReturnData returnData = new ReturnData();
-        try {
-            Location local = LocationUtil.getInstance().getLocation(true);
-            String address = LocationUtil.getInstance().getAddress(local);
-            returnData.setSuccess(true);
-            returnData.setCode(200);
-            returnData.setData(address);
-            returnData.setLatitude(local.getLatitude());
-            returnData.setLongitude(local.getLongitude());
-            return returnData;
-        } catch (Exception e) {
-            returnData.setCode(FAILED_TO_GET_LOCATION);
-            returnData.setSuccess(false);
+        ReturnData data = new ReturnData();
+        LocationUtil util = LocationUtil.getInstance();
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("LocationUtil: " + LocationUtil.getInstance().toString());
+        // 1. 优先返回缓存（99% 情况 < 50ms）
+        if (util.hasValidCache()) {
+            LocationUtil.CachedResult c = util.getCachedResult();
+            data.setSuccess(true);
+            data.setCode(200);
+            data.setData(c.address);
+            data.setLatitude(c.lat);
+            data.setLongitude(c.lng);
+            return data;
+        }
 
-            returnData.setErrorMsg("Failed to get location: Please enable location service first.\n" + sb.toString());
-            return returnData;
+        // 2. 无缓存 → 触发定位，但最多等 100ms
+        final AtomicReference<ReturnData> result = new AtomicReference<>(null);
+        final long start = System.currentTimeMillis();
+
+        util.getBestLocation(new LocationUtil.MyLocationCallback() {
+            @Override
+            public void onSuccess(String address, double lat, double lng, float accuracy) {
+                ReturnData r = new ReturnData();
+                r.setSuccess(true);
+                r.setCode(200);
+                r.setData(address);
+                r.setLatitude(lat);
+                r.setLongitude(lng);
+                result.set(r);
+            }
+
+            @Override
+            public void onFailed(String error) {
+                ReturnData r = new ReturnData();
+                r.setSuccess(false);
+                r.setCode(FAILED_TO_GET_LOCATION);
+                r.setErrorMsg(error);
+                result.set(r);
+            }
+        });
+
+        while (result.get() == null && System.currentTimeMillis() - start < 100) {
+            try { Thread.sleep(10); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        }
+
+        ReturnData finalResult = result.get();
+        if (finalResult != null) {
+            return finalResult;
+        } else {
+            data.setSuccess(false);
+            data.setCode(FAILED_TO_GET_LOCATION);
+            data.setErrorMsg("正在获取精准位置...");
+            data.setData("定位中，约5-15秒后完成");
+            return data;
         }
     }
+
 
     @CrossOrigin(methods = {RequestMethod.POST})
     @PostMapping(path = "/speech")

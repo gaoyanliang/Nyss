@@ -34,37 +34,37 @@ public class MessageController {
 
 
     /**
-     * 现在前端 不主动调用 这个接口，改由socket接收消息，弹框通知并保存消息
+     * 废弃 ⚠️ 现在前端 不主动调用 这个接口，改由socket接收消息，弹框通知并保存消息
      * @param notification
      * @return
      */
-    @CrossOrigin(methods = {RequestMethod.POST})
-    @PostMapping(path = "/notification")
-    public ReturnData notification(@RequestBody NotificationParam notification) {
-        ReturnData returnData = new ReturnData();
-        try {
-            if (!notification.getTitle().isEmpty()) {
-                NotificationUtil.getInstance().createNotificationForHigh(notification.title, notification.context);
-            }
-
-            if (notification.getMessage() != null) {
-                FileHelper.getInstance().notificationSaveToLocal(notification.getIn_chat(),
-                        notification.getCurUserId(), notification.getMessage());
-            }
-            returnData.setSuccess(true);
-            returnData.setCode(20000);
-            return returnData;
-        } catch (Exception e) {
-            returnData.setCode(FAILED_TO_GET_LOCATION);
-            returnData.setSuccess(false);
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("NotificationUtil: " + NotificationUtil.getInstance().toString());
-
-            returnData.setErrorMsg("Failed notification: Please try again later." + sb.toString());
-            return returnData;
-        }
-    }
+//    @CrossOrigin(methods = {RequestMethod.POST})
+//    @PostMapping(path = "/notification")
+//    public ReturnData notification(@RequestBody NotificationParam notification) {
+//        ReturnData returnData = new ReturnData();
+//        try {
+//            if (!notification.getTitle().isEmpty()) {
+//                NotificationUtil.getInstance().createNotificationForHigh(notification.title, notification.context);
+//            }
+//
+//            if (notification.getMessage() != null) {
+//                FileHelper.getInstance().notificationSaveToLocal(notification.getIn_chat(),
+//                        notification.getCurUserId(), notification.getMessage());
+//            }
+//            returnData.setSuccess(true);
+//            returnData.setCode(20000);
+//            return returnData;
+//        } catch (Exception e) {
+//            returnData.setCode(FAILED_TO_GET_LOCATION);
+//            returnData.setSuccess(false);
+//
+//            StringBuilder sb = new StringBuilder();
+//            sb.append("NotificationUtil: " + NotificationUtil.getInstance().toString());
+//
+//            returnData.setErrorMsg("Failed notification: Please try again later." + sb.toString());
+//            return returnData;
+//        }
+//    }
 
     /**
      * 读取聊天消息
@@ -88,6 +88,10 @@ public class MessageController {
             }
             dict.put("start", Integer.toString(readMessagesParam.getStart()));
             dict.put("count", Integer.toString(readMessagesParam.getCount()));
+
+            dict.put("keyword", readMessagesParam.getKeyword());
+            dict.put("start_time_str", readMessagesParam.getStart_time_str());
+            dict.put("end_time_str", readMessagesParam.getEnd_time_str());
 
             List<Map<String, Object>> messages = null;
 //            // ===== 消息存本地文件 =====
@@ -188,6 +192,28 @@ public class MessageController {
             returnData.setCode(UNKNOWN);
             returnData.setSuccess(false);
             returnData.setErrorMsg("Failed to write message");
+            return returnData;
+        }
+    }
+
+
+    @CrossOrigin(methods = {RequestMethod.POST})
+    @PostMapping(path = "/delete_contact")
+    public ReturnData deleteContact(@RequestBody ReadMessagesParam readMessagesParam) {
+        ReturnData returnData = new ReturnData();
+        try {
+            System.out.println("MessageController.deleteContact: 接收到请求参数： " + readMessagesParam);
+            MainActivity.getDatabaseHelper().deleteContact(readMessagesParam.getRead_type(),
+                    readMessagesParam.getCur_user_id(), readMessagesParam.getChat_user_id());
+
+            returnData.setSuccess(true);
+            returnData.setCode(20000);
+            returnData.setData("delete contact successful");
+            return returnData;
+        } catch (Exception e) {
+            returnData.setCode(UNKNOWN);
+            returnData.setSuccess(false);
+            returnData.setErrorMsg("Failed to delete_contact");
             return returnData;
         }
     }

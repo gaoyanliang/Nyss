@@ -45,7 +45,7 @@ import android.util.Base64;
 
 import com.example.nsyy.alarm.LongRunningService;
 import com.example.nsyy.config.MySharedPreferences;
-import com.example.nsyy.config.SocketClient;
+import com.example.nsyy.email.EmailDatabaseHelper;
 import com.example.nsyy.message.FileHelper;
 import com.example.nsyy.message.MessageDatabaseHelper;
 import com.example.nsyy.service.NsServerService;
@@ -55,6 +55,7 @@ import com.example.nsyy.utils.LocationUtil;
 import com.example.nsyy.utils.NotificationUtil;
 import com.example.nsyy.utils.PermissionUtil;
 
+import com.example.nsyy.utils.SocketUtil;
 import com.example.nsyy.vivo_scan.VivoQRCodeScanActivity;
 import com.huawei.hms.aaid.HmsInstanceId;
 import com.huawei.hms.common.ApiException;
@@ -82,10 +83,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static final int CAMERA_PERMISSION_REQUEST_CODE= 777;
     public static final String TAG = "Nsyy";
 
-    private static String LOAD_RUL = "http://192.168.124.14:6060";
-//    private static String LOAD_RUL = "http://192.168.124.58:8081/";
-
-//    private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
+    // 本地环境
+//    private static String LOAD_RUL = "http://192.168.124.14:6060";
+    // 外网地址
+    private static String LOAD_RUL = "http://oa.nsyy.com.cn:6060";
+    // 内网地址
 //    private static String LOAD_RUL = "http://192.168.3.12:6060";
 
     private WebView webView;
@@ -96,12 +98,17 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     // 处理文件选择上传
     private ValueCallback<Uri[]> mFilePathCallback;
     private static final int REQUEST_CODE_FILE_CHOOSER = 1;
-    private SocketClient socketManager;
-    private static MessageDatabaseHelper dbHelper;
 
+//    private SocketClient socketManager;
+    private static MessageDatabaseHelper dbHelper;
+    private static EmailDatabaseHelper emailHelper;
     public static MessageDatabaseHelper getDatabaseHelper() {
         return dbHelper;
     }
+    public static EmailDatabaseHelper getEmailHelper() {
+        return emailHelper;
+    }
+
 
     private final BroadcastReceiver noticeReceiver = new BroadcastReceiver() {
         @Override
@@ -136,6 +143,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         dbHelper = MessageDatabaseHelper.getInstance(this);
+        emailHelper = EmailDatabaseHelper.getInstance(this);
 
         MySharedPreferences.init(this);
 
@@ -161,19 +169,22 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // 检查权限: 这里需要开启位置权限 & 位置服务
         PermissionUtil.checkLocationPermission(this);
         LocationUtil.getInstance().setContext(this);
-        LocationUtil.getInstance().initGPS();
+//        LocationUtil.getInstance().initGPS();
 
         // 消息通知
         PermissionUtil.checkNotification(this);
         NotificationUtil.getInstance().setContext(this);
         NotificationUtil.getInstance().initNotificationChannel();
 
+        // socket 连接
+        SocketUtil.getInstance().setContext(this);
+
 //        // 检查是否开启蓝牙权限 & 初始化
 //        PermissionUtil.checkBlueToothPermission(this);
 //        BlueToothUtil.getInstance().init(this);
 
-        // 异步尝试获取有效clientId并连接Socket
-        checkPersIdAndInitializeSocket();
+        // 异步尝试获取有效clientId并连接Socket 改用由前端调用接口控制连接与断联
+//        checkPersIdAndInitializeSocket();
 
         setAutoInitEnabled(true);
     }
@@ -212,30 +223,30 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     /**
      * 当用户登陆之后，保存 pers_id 之后 再连接 socket
      */
-    private void checkPersIdAndInitializeSocket() {
-        Log.d("===> SocketIO", "Socket initialized");
-        new Thread(() -> {
-            while (true) {
-                int persId = MySharedPreferences.getSharedPreferences().getInt("pers_id", 0);
-                Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
-                if (persId != 0) {
-                    runOnUiThread(() -> {
-                        socketManager = new SocketClient(this, persId);
-                        socketManager.connect();
-                        Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
-                    });
-                    break;
-                }
-
-                try {
-                    // Check every second
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-    }
+//    private void checkPersIdAndInitializeSocket() {
+//        Log.d("===> SocketIO", "Socket initialized");
+//        new Thread(() -> {
+//            while (true) {
+//                int persId = MySharedPreferences.getSharedPreferences().getInt("pers_id", 0);
+//                Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
+//                if (persId != 0) {
+//                    runOnUiThread(() -> {
+//                        socketManager = new SocketClient(this, persId);
+//                        socketManager.connect();
+//                        Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
+//                    });
+//                    break;
+//                }
+//
+//                try {
+//                    // Check every second
+//                    Thread.sleep(5000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }).start();
+//    }
 
 
     private void showWebsiteChooserDialog() {
@@ -390,6 +401,10 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     // app 安装包下载
                     String base64String = url.substring(url.indexOf("save_path=") + "save_path=".length());
                     fileName = base64decode(base64String);
+                    if (fileName.contains("/")) {
+                        String[] tmp = fileName.split("/");
+                        fileName = tmp[tmp.length - 1];
+                    }
                 } else {
                     return false;
                 }
@@ -399,6 +414,10 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_FILE_PERMISSION_CODE);
                 } else {
                     // 下载文件
+                    if (url.contains("192.168.124")) {
+                        url = "http://120.194.96.67:6080/att_download?save_path=L2hvbWUvY2MvYXR0LzIwMjUvMjAyNS0wNi0xNy8xNzUwMTI4OTM1LjQ4NDk1OS5qcGc=";
+                        // fileName = "484959.jpg";
+                    }
                     startDownload(url, fileName);
                 }
 
@@ -510,6 +529,26 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             // 在此处处理下载完成后 跳转到文件管理器查看下载的文件
             openDownloadFile(fileName);
             return;
+        }
+
+        if (url.contains("mid")) {
+            String midStr = url.replaceAll(".*[?&]mid=([^&]+).*", "$1");
+            try {
+                int mid = Integer.parseInt(midStr);
+                MainActivity.getDatabaseHelper().updateDownloadFlag(mid);
+            } catch (Exception e) {
+
+            }
+            url = url.replaceAll("[?&]mid=[^&]*", "").replaceAll("\\?$", "");
+        } else if (url.contains("message_id")) {
+            String midStr = url.replaceAll(".*[?&]message_id=([^&]+).*", "$1");
+//            try {
+//                int mid = Integer.parseInt(midStr);
+//                MainActivity.getDatabaseHelper().updateDownloadFlag(mid);
+//            } catch (Exception e) {
+//
+//            }
+            url = url.replaceAll("[?&]message_id=[^&]*", "").replaceAll("\\?$", "");
         }
 
         // 获取文件扩展名
@@ -632,7 +671,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         webView.destroy();
         super.onDestroy();
 
-        socketManager.disconnect(); // 避免内存泄漏
+//        socketManager.disconnect(); // 避免内存泄漏
 
         // 清理回调
         if (mFilePathCallback != null) {

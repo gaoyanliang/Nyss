@@ -35,7 +35,9 @@ import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
 
-public class PersistentSocketService extends Service {
+// 废弃⚠️
+
+public class PersistentSocketService_Removed extends Service {
     private static final int NOTIFICATION_ID = 1001;
     private static final String CHANNEL_ID = "socket_channel";
     private Socket socket;
@@ -49,7 +51,7 @@ public class PersistentSocketService extends Service {
     private final WeakReference<MainActivity> activityRef;
     private PowerManager.WakeLock wakeLock;
 
-    public PersistentSocketService(MainActivity activity, Integer clientId) {
+    public PersistentSocketService_Removed(MainActivity activity, Integer clientId) {
         this.activityRef = new WeakReference<>(activity);
         this.context = activity.getApplicationContext();
         this.clientId = clientId;
@@ -143,9 +145,9 @@ public class PersistentSocketService extends Service {
                             // 弹框通知
                             Map<String, String> title = extractTitleFromMap(data);
                             Log.d("===> SocketIO", "title " + title.toString());
-                            if (!title.get("title").isEmpty()) {
-                                NotificationUtil.getInstance().createNotificationForHigh(title.get("title"), title.get("context"));
-                            }
+//                            if (!title.get("title").isEmpty()) {
+//                                NotificationUtil.getInstance().createNotificationForHigh(title.get("title"), title.get("context"));
+//                            }
 
                             // 将消息保存至本地
                             if (data.containsKey("message")) {

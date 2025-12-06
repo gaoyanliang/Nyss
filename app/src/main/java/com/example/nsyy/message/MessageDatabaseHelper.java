@@ -26,9 +26,6 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
     // 表名常量
     private static final String TABLE_MESSAGES = "messages";
     private static final String TABLE_CONTACTS = "contacts";
-//    private static final String TABLE_ATTACHMENTS = "attachments";
-//    private static final String TABLE_MESSAGE_EXTRA = "message_extra";
-//    private static final String TABLE_CONTACT_EXTRA = "contact_extra";
 
     // 消息表核心字段
     private static final String COLUMN_ID = "mid";
@@ -42,6 +39,7 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_CONTEXT = "context";
     private static final String COLUMN_TIMESTAMP = "timer";
     private static final String COLUMN_IS_READ = "is_read";
+    private static final String COLUMN_DOWNLOAD = "downloaded";
 
     // 联系人表核心字段
     private static final String COLUMN_CONTACT_CHAT_TYPE = "chat_type";
@@ -52,16 +50,6 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_LAST_MSG_TIME = "last_msg_time";
     private static final String COLUMN_UNREAD_COUNT = "unread";
 
-//    // 附件表核心字段
-//    private static final String COLUMN_FILE_NAME = "file_name";
-//    private static final String COLUMN_FILE_PATH = "file_path";
-//    private static final String COLUMN_FILE_SIZE = "file_size";
-//    private static final String COLUMN_MIME_TYPE = "mime_type";
-
-//    // 扩展表通用字段
-//    private static final String COLUMN_ENTITY_ID = "entity_id";
-//    private static final String COLUMN_KEY = "key";
-//    private static final String COLUMN_VALUE = "value";
 
     private Context context;
     private static MessageDatabaseHelper instance;
@@ -121,7 +109,8 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_GROUP_ID + " INTEGER,"
                 + COLUMN_CONTEXT + " TEXT NOT NULL,"
                 + COLUMN_TIMESTAMP + " TEXT NOT NULL,"
-                + COLUMN_IS_READ + " INTEGER DEFAULT 0"
+                + COLUMN_IS_READ + " INTEGER DEFAULT 0,"
+                + COLUMN_DOWNLOAD + " INTEGER DEFAULT 0"
                 + ")";
         db.execSQL(CREATE_MESSAGES_TABLE);
 
@@ -203,7 +192,9 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
     }
 
     public List<Map<String, Object>> getMessages(int type, Integer userId, Integer chatUserId,
-                                                 Integer groupId, int start, int count) {
+                                                 Integer groupId, int start, int count,
+                                                 String keyword, String startTimeStr,
+                                                 String endTimeStr ) {
         SQLiteDatabase db = this.getReadableDatabase();
         List<Map<String, Object>> messages = new ArrayList<>();
 
@@ -227,6 +218,23 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
             selectionArgs.add(String.valueOf(userId));
         }
 
+        // 2. 关键字搜索
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            selection += " AND " + COLUMN_CONTEXT + " LIKE ?";
+            selectionArgs.add("%" + keyword.trim() + "%");
+        }
+
+        // 3. 时间范围（TEXT字段专用写法）
+        if (startTimeStr != null && !startTimeStr.trim().isEmpty()) {
+            // timer >= '2025-11-01 00:00:00'   （字符串比较正好符合时间顺序）
+            selection += " AND " + COLUMN_TIMESTAMP + " >= ?";
+            selectionArgs.add(startTimeStr.trim());
+        }
+        if (endTimeStr != null && !endTimeStr.trim().isEmpty()) {
+            selection += " AND " + COLUMN_TIMESTAMP + " <= ?";
+            selectionArgs.add(endTimeStr.trim());
+        }
+
         // 执行查询
         Cursor cursor = db.query(TABLE_MESSAGES,
                 null, // 所有列
@@ -238,8 +246,7 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
 
         try {
             while (cursor.moveToNext()) {
-                Map<String, Object> message = cursorToMessage(cursor, type);
-                messages.add(message);
+                messages.add(cursorToMessage(cursor, type));
             }
         } finally {
             cursor.close();
@@ -261,6 +268,7 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
         message.put(COLUMN_RECEIVER_NAME, getStrSafe(cursor, COLUMN_RECEIVER_NAME, "Unknown"));
         message.put(COLUMN_GROUP_ID, getIntSafe(cursor, COLUMN_GROUP_ID, 0));
         message.put(COLUMN_IS_READ, getIntSafe(cursor, COLUMN_IS_READ, 0));
+        message.put(COLUMN_DOWNLOAD, getIntSafe(cursor, COLUMN_DOWNLOAD, 0));
         message.put(COLUMN_TIMESTAMP, getStrSafe(cursor, COLUMN_TIMESTAMP, "Unknown"));
 
         String context_str = getStrSafe(cursor, COLUMN_CONTEXT, "");
@@ -277,6 +285,29 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
 
         return message;
     }
+
+
+    @SuppressLint("Range")
+    public void updateDownloadFlag(int mid) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            db.beginTransaction();
+            try {
+                ContentValues values = new ContentValues();
+                values.put(COLUMN_DOWNLOAD, 1);
+                db.update(TABLE_MESSAGES, values, COLUMN_ID + " = ?", new String[]{String.valueOf(mid)});
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();   // 正确位置
+            }
+        } finally {
+            // 关键！主动释放连接
+            if (db != null && db.inTransaction() == false) {
+                db.close();  // 释放连接回连接池
+            }
+        }
+    }
+
 
     // ======================== 联系人相关操作 ========================
 
@@ -444,6 +475,11 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
             if (groupId == null) {
                 groupId = 0; // 默认值
             }
+
+            if (senderId == curUserId) {
+                inChat = 1;
+            }
+
             Map<String, Object> contextData;
             String context = "";
             if (chatType == 0) {
@@ -479,8 +515,13 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
         int count = Integer.parseInt(dict.getOrDefault("count", "20"));
         Integer chatUserId = Integer.parseInt(dict.get("chat_user_id"));
         Integer groupId = Integer.parseInt(dict.get("chat_user_id"));
-        return getMessages(type, curUserId, chatUserId, groupId, start, count);
+
+        String keyword = dict.getOrDefault("keyword", null);
+        String startTimeStr = dict.getOrDefault("start_time_str", null);
+        String endTimeStr = dict.getOrDefault("end_time_str", null);
+        return getMessages(type, curUserId, chatUserId, groupId, start, count, keyword, startTimeStr, endTimeStr);
     }
+
 
     public void updateUnread(int chatType, int curUserId, int chatUserId) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -502,6 +543,56 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
         db.update(TABLE_CONTACTS, values, whereClause, whereArgs);
     }
 
+    /**
+     * 删除指定的聊天会话（联系人条目）
+     * 完全对应 iOS 端的 deleteContact(type:userId:chatId:)
+     *
+     * @param chatType   0=系统通知, 1=私聊, 2=群聊
+     * @param userId     当前登录用户的ID（对应 Contact 表的 user_id / id 字段）
+     * @param chatId     私聊传对方用户ID，群聊传群ID，系统通知可传 null 或任意值
+     */
+    public void deleteContact(int chatType, int userId, Integer chatId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        String whereClause;
+        String[] whereArgs;
+
+        if (chatType == 0) {
+            // 系统通知：只根据 chat_type + user_id 删除
+            whereClause = COLUMN_CONTACT_CHAT_TYPE + " = ? AND " +
+                    COLUMN_USER_ID + " = ?";
+            whereArgs = new String[]{
+                    String.valueOf(chatType),
+                    String.valueOf(userId)
+            };
+        } else {
+            // 私聊或群聊：必须有 chatId
+            if (chatId == null) {
+                System.out.println("私聊/群聊删除会话必须提供 chatId");
+                return;
+            }
+            whereClause = COLUMN_CONTACT_CHAT_TYPE + " = ? AND " +
+                    COLUMN_USER_ID + " = ? AND " +
+                    COLUMN_CHAT_ID + " = ?";
+            whereArgs = new String[]{
+                    String.valueOf(chatType),
+                    String.valueOf(userId),
+                    String.valueOf(chatId)
+            };
+        }
+
+        try {
+            int rows = db.delete(TABLE_CONTACTS, whereClause, whereArgs);
+            if (rows > 0) {
+                System.out.println("成功删除会话：type=" + chatType + ", chatId=" + chatId);
+            } else {
+                System.out.println("未找到要删除的会话：type=" + chatType + ", userId=" + userId + ", chatId=" + (chatId != null ? chatId : "null"));
+            }
+        } catch (Exception e) {
+            System.out.println("删除会话失败" + e.toString());
+        }
+    }
+
     public int getLocalContact(int curUserId, List<Map<String, Object>> result) {
         int allUnread = 0;
 
@@ -514,10 +605,6 @@ public class MessageDatabaseHelper extends SQLiteOpenHelper {
 
         return allUnread;
     }
-
-
-
-
 
 
 
