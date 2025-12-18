@@ -172,8 +172,7 @@ public class BlueToothUtil {
         // 1. 校验蓝牙权限（已在MainActivity启动时获取）
         if (!XXPermissions.isGranted(mContext, new String[]{
                 Permission.BLUETOOTH_SCAN,
-                Permission.BLUETOOTH_CONNECT,
-                Permission.BLUETOOTH_ADVERTISE})) {
+                Permission.BLUETOOTH_CONNECT})) {
             throw new BluetoothException("未获取蓝牙权限，请先获取蓝牙权限");
         }
 

@@ -72,8 +72,6 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
             XXPermissions.with(this)
                     .permission(Permission.ACCESS_COARSE_LOCATION)
                     .permission(Permission.ACCESS_FINE_LOCATION)
-                    // 如果不需要在后台使用定位功能，请不要申请此权限
-                    .permission(Permission.ACCESS_BACKGROUND_LOCATION)
                     .interceptor(new PermissionInterceptor())
                     .request(new OnPermissionCallback() {
 
@@ -92,8 +90,7 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
             // 判断是否已经获取位置权限，没有获取先获取位置权限
             if (XXPermissions.isGranted(this, new String[]{
                     Permission.ACCESS_COARSE_LOCATION,
-                    Permission.ACCESS_FINE_LOCATION,
-                    Permission.ACCESS_BACKGROUND_LOCATION})) {
+                    Permission.ACCESS_FINE_LOCATION})) {
 
                 locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
@@ -106,7 +103,9 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
                 nsyyLocationListener = new NsyyLocationListener();
 
 
-                if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(this,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                        && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
                     //    ActivityCompat#requestPermissions
                     // here to request the missing permissions, and then overriding

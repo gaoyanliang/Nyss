@@ -67,8 +67,6 @@ public class NsServerService extends Service {
                 .build();
 
         LocationUtil.getInstance().setContext(this);
-//        NotificationUtil.getInstance().setContext(this);
-
 
         /**
          * 启动一个前台进程，提高自身优先级，尽量后台保活。 参考：https://blog.51cto.com/u_16099245/6603732

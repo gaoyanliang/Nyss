@@ -1,64 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- 允许程序打开网络套接字 -->
-    <uses-permission android:name="android.permission.INTERNET" />
-<!--    <uses-permission android:name="android.permission.RECORD_AUDIO" /> -->
-<!--    <uses-permission android:name="android.permission.CALL_PHONE" />-->
 
-    <!-- ================ 获取位置需要的权限 ================ -->
+    <!-- 网络 -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 相机（扫码） -->
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- FLASHLIGHT（手电筒） -->
+
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
+
+    <!-- 定位（蓝牙 / 业务定位） -->
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> <!-- ================ 消息通知相关权限 ================ -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.TTS_SERVICE" />
-        </intent>
-    </queries>
 
-    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 通知 -->
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" /> <!-- ================ 开机自启动权限 ================ -->
+
+    <!-- 前台服务（如确实有） -->
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- 文件权限 使用 SAF -->
+
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />-->
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />-->
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />-->
+
+    <!-- 开机自启动权限 -->
+
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- ================ 蓝牙相关权限 ================ -->
-    <uses-permission
-        android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation"
-        tools:targetApi="s" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <uses-feature
-        android:name="android.hardware.telephony"
-        android:required="true" />
+    <!-- 保持唤醒 防止设备休眠 后台任务 / 播放 / 实时连接 -->
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- 震动 通知震动 -->
+
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- 摄像头 feature -->
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
 
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" /> <!-- 相机权限 -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!--    上架app 不需要蓝牙权限（Android 12+） -->
+    <!--    <uses-permission-->
+    <!--        android:name="android.permission.BLUETOOTH_SCAN"-->
+    <!--        android:usesPermissionFlags="neverForLocation"-->
+    <!--        tools:targetApi="s" />-->
+    <!--    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />-->
+    <!--    <uses-permission-->
+    <!--        android:name="android.permission.BLUETOOTH"-->
+    <!--        android:maxSdkVersion="30" />-->
+    <!--    <uses-permission-->
+    <!--        android:name="android.permission.BLUETOOTH_ADMIN"-->
+    <!--        android:maxSdkVersion="30" />-->
 
-    <uses-feature android:name="android.hardware.camera.autofocus" />
-    <uses-feature android:name="android.hardware.camera" />
+    <!--  麦克风（极容易被问）  <uses-permission android:name="android.permission.RECORD_AUDIO" /> -->
+    <!--  电话能力（极不友好）  <uses-permission android:name="android.permission.CALL_PHONE" />-->
+    <!--    <uses-feature android:name="android.hardware.telephony" android:required="true" />-->
+    <!--  后台定位（高风险）非常容易触发人工审核追问  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
+    <!--  存储“核武器级”权限（必须处理）  <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />-->
+    <!--  悬浮窗  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
+    <!--  通知监听  <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />-->
+    <!--  忽略电池优化  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />-->
 
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.FLASHLIGHT" /> <!-- 安装包权限 -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!--  Android 11+ 包可见性声明，表示你要查询系统里的 TTS（语音合成）服务。 影像科需要在单独的分支使用  -->
+    <!--    <queries>-->
+    <!--        <intent>-->
+    <!--            <action android:name="android.intent.action.TTS_SERVICE" />-->
+    <!--        </intent>-->
+    <!--    </queries>-->
 
+    <!--  锁屏控制  <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />-->
+    <!--  设备作为“蓝牙广播源” BLE Beacon / 对外可发现  移动护理/医废app需要  <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />-->
+    <!--  传统存储读写 ⚠️ 已过时  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />-->
+    <!--    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />-->
+    <!--  安装 APK 允许引导用户安装 APK 上架后不需要  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />-->
+
+    <!--  为过审删除 android:requestLegacyExternalStorage="true"  -->
     <application
         android:name="com.nsyy.nsyy.permission.AppApplication"
         android:icon="@mipmap/ic_nsyy"
@@ -66,7 +95,6 @@
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:requestLegacyExternalStorage="true"
         android:theme="@style/AppTheme"
         tools:ignore="UnusedAttribute">
         <activity
@@ -116,10 +144,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
-        </receiver> <!-- 注册定时任务 -->
-        <service android:name="com.nsyy.nsyy.alarm.LongRunningService" />
-
-        <receiver android:name="com.nsyy.nsyy.alarm.AlarmReceiver" />
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

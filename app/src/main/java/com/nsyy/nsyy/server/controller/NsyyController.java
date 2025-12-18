@@ -60,35 +60,6 @@ public class NsyyController {
         }
     }
 
-    /**
-     * TODO 待确定具体地址格式
-     * @return
-     */
-//    @CrossOrigin(methods = {RequestMethod.GET})
-//    @GetMapping("/location")
-//    public ReturnData location() {
-//        ReturnData returnData = new ReturnData();
-//        try {
-//            Location local = LocationUtil.getInstance().getLocation(true);
-//            String address = LocationUtil.getInstance().getAddress(local);
-//            returnData.setSuccess(true);
-//            returnData.setCode(200);
-//            returnData.setData(address);
-//            returnData.setLatitude(local.getLatitude());
-//            returnData.setLongitude(local.getLongitude());
-//            return returnData;
-//        } catch (Exception e) {
-//            returnData.setCode(FAILED_TO_GET_LOCATION);
-//            returnData.setSuccess(false);
-//
-//            StringBuilder sb = new StringBuilder();
-//            sb.append("LocationUtil: " + LocationUtil.getInstance().toString());
-//
-//            returnData.setErrorMsg("Failed to get location: Please enable location service first.\n" + sb.toString());
-//            return returnData;
-//        }
-//    }
-
 
     @CrossOrigin(methods = {RequestMethod.GET})
     @GetMapping("/location")

@@ -16,6 +16,8 @@ import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 
+// 这个文件不能删除，否则andserver接口返回的数据有问题（不是json而是str）
+
 @Converter
 public class NotificationConverter implements MessageConverter {
     /**

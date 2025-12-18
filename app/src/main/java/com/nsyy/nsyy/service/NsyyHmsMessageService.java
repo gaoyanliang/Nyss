@@ -12,7 +12,7 @@ public class NsyyHmsMessageService extends HmsMessageService {
     @Override
     public void onNewToken(String token, Bundle bundle) {
         // 获取token
-        Log.i(TAG, "have received refresh token." + token);
+        Log.i(TAG, "获取到华为推送token." + token);
 
         // 判断token是否为空
         if (!TextUtils.isEmpty(token)) {
@@ -22,7 +22,7 @@ public class NsyyHmsMessageService extends HmsMessageService {
 
 
     private void refreshedTokenToServer(String token) {
-        Log.i(TAG, "sending token to server." + token);
+        Log.i(TAG, "发送华为推送token到服务器." + token);
         SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
         editor.putString("token", token);
         editor.apply();

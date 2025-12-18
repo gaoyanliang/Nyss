@@ -8,6 +8,7 @@ import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -22,7 +23,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
-import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
@@ -50,7 +50,6 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import android.util.Base64;
 
-import com.nsyy.nsyy.alarm.LongRunningService;
 import com.nsyy.nsyy.config.MySharedPreferences;
 import com.nsyy.nsyy.config.NsyyConfig;
 import com.nsyy.nsyy.email.EmailDatabaseHelper;
@@ -63,10 +62,9 @@ import com.nsyy.nsyy.utils.LocationUtil;
 import com.nsyy.nsyy.utils.NotificationUtil;
 import com.nsyy.nsyy.utils.PermissionUtil;
 
+import com.nsyy.nsyy.utils.PhotoUtils;
 import com.nsyy.nsyy.utils.SocketUtil;
 import com.nsyy.nsyy.vivo_scan.VivoQRCodeScanActivity;
-import com.huawei.hms.aaid.HmsInstanceId;
-import com.huawei.hms.common.ApiException;
 import com.huawei.hms.hmsscankit.ScanUtil;
 import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
@@ -94,15 +92,20 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private WebView webView;
 
     public static String last_camera_img_name = null;
-    private final static int CAMERA_FILE_RESULT_CODE = 10001;
 
     // 处理文件选择上传
     private ValueCallback<Uri[]> mFilePathCallback;
     private static final int REQUEST_CODE_FILE_CHOOSER = 1;
 
-//    private SocketClient socketManager;
     private static MessageDatabaseHelper dbHelper;
     private static EmailDatabaseHelper emailHelper;
+
+
+    private static final int REQ_CAMERA = 10001;
+    private static final int REQ_PICK_IMAGE = 10002;
+    private Uri cameraImageUri;
+
+
     public static MessageDatabaseHelper getDatabaseHelper() {
         return dbHelper;
     }
@@ -151,14 +154,13 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 初始化 WebView
         webView = findViewById(R.id.webView);
-        loadWebsite(2);
+        SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
+        editor.putString("load_url", NsyyConfig.LOAD_RUL);
+        editor.apply();
+        initView();
 
         AppVersionUtil.getInstance().init(this);
         FileHelper.getInstance().setContext(this);
-
-        // 启动定时任务 每十分钟打印一次时间
-        Intent intent = new Intent(this, LongRunningService.class);
-        startService(intent);
 
         // 启动 web server
         registerReceiver(nsyyServerBroadcastReceiver, new IntentFilter("NsyyServerBroadcastReceiver"));
@@ -167,11 +169,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // 注册广播接收器
         registerReceiver(noticeReceiver, new IntentFilter("LOAD_TARGET_PAGE"));
 
-
         // 检查权限: 这里需要开启位置权限 & 位置服务
         PermissionUtil.checkLocationPermission(this);
         LocationUtil.getInstance().setContext(this);
-//        LocationUtil.getInstance().initGPS();
 
         // 消息通知
         PermissionUtil.checkNotification(this);
@@ -180,13 +180,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // socket 连接
         SocketUtil.getInstance().setContext(this);
-
-//        // 检查是否开启蓝牙权限 & 初始化
-//        PermissionUtil.checkBlueToothPermission(this);
-//        BlueToothUtil.getInstance().init(this);
-
-        // 异步尝试获取有效clientId并连接Socket 改用由前端调用接口控制连接与断联
-//        checkPersIdAndInitializeSocket();
 
         setAutoInitEnabled(true);
     }
@@ -202,114 +195,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         }
     }
 
-    private void deleteToken() {
-        // 创建一个新线程
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    // 从agconnect-services.json文件中读取APP_ID
-                    String appId = "116387119";
-                    // 输入token标识"HCM"
-                    String tokenScope = "HCM";
-                    // 注销Token
-                    HmsInstanceId.getInstance(webView.getContext()).deleteToken(appId, tokenScope);
-                    Log.i(TAG, "token deleted successfully");
-                } catch (ApiException e) {
-                    Log.e(TAG, "delete token failed." + e);
-                }
-            }
-        }.start();
-    }
-
-
-    /**
-     * 当用户登陆之后，保存 pers_id 之后 再连接 socket
-     */
-//    private void checkPersIdAndInitializeSocket() {
-//        Log.d("===> SocketIO", "Socket initialized");
-//        new Thread(() -> {
-//            while (true) {
-//                int persId = MySharedPreferences.getSharedPreferences().getInt("pers_id", 0);
-//                Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
-//                if (persId != 0) {
-//                    runOnUiThread(() -> {
-//                        socketManager = new SocketClient(this, persId);
-//                        socketManager.connect();
-//                        Log.d("===> SocketIO", "Socket initialized with pers_id: " + persId);
-//                    });
-//                    break;
-//                }
-//
-//                try {
-//                    // Check every second
-//                    Thread.sleep(5000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }).start();
-//    }
-
-
-    private void showWebsiteChooserDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("选择要访问的网站：")
-                .setItems(R.array.website_choices, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Load the selected website
-                        loadWebsite(which);
-                    }
-                });
-
-        // Create and show the alert dialog
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
-    }
-
-    private void loadWebsite(int choice) {
-//        // Array of websites
-//        String[] websites = getResources().getStringArray(R.array.websites);
-//
-//        if (choice >= 0 && choice < websites.length) {
-//            String selectedWebsite = websites[choice];
-//            LOAD_RUL = selectedWebsite;
-//            initView();
-//        } else {
-//            LOAD_RUL = "http://oa.nsyy.com.cn:6060";
-//            initView();
-//        }
-        SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
-        editor.putString("load_url", NsyyConfig.LOAD_RUL);
-        editor.apply();
-
-        initView();
-    }
 
     private void initView() {
-//        swipeRefreshLayout = findViewById(R.id.refreshLayout);
-//        // 配置 SwipeRefreshLayout
-//        swipeRefreshLayout.setOnRefreshListener(null);
-//        // 隐藏加载图标
-//        swipeRefreshLayout.setRefreshing(false);
-//        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-//            @Override
-//            public void onRefresh() {
-//                // 检查 WebView 是否为空
-//                if (webView == null) {
-//                    swipeRefreshLayout.setRefreshing(false);
-//                    return;
-//                }
-//                // 在 UI 线程上执行 WebView 刷新
-//                new Handler().post(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        webView.reload();
-//                    }
-//                });
-//            }
-//        });
-
         if (webView == null) {
             webView = findViewById(R.id.webView);
         }
@@ -363,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             @Override
             public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
                 super.onReceivedHttpError(view, request, errorResponse);
-                Log.e("WEBVIEW", "HTTP错误: " + errorResponse.getStatusCode());
+                Log.e("WEBVIEW", "HTTP错误: " + errorResponse.getStatusCode() + " " + errorResponse);
             }
 
             @Override
@@ -544,18 +431,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         webView.loadUrl(NsyyConfig.LOAD_RUL);
     }
 
-    protected String base64decode1(String encodedString) {
-        // 解码 Base64 编码的字符串
-        byte[] decodedBytes = new byte[0];
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            decodedBytes = java.util.Base64.getDecoder().decode(encodedString);
-        }
-
-        // 将字节数组转换为字符串
-        String decodedString = new String(decodedBytes);
-        return decodedString;
-    }
-
     protected String base64decode(String encodedString) throws Exception {
         if (encodedString == null || encodedString.isEmpty()) {
             throw new IllegalArgumentException("Empty base64 string");
@@ -565,34 +440,35 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     private void startDownload(String url, String fileName) {
-
-        // 获取下载目录
-        File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        // 形成完整的文件地址
+        // ✅ App 私有下载目录（不需要任何存储权限）
+        File downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (downloadsDir == null) {
+            Toast.makeText(this, "无法访问下载目录", Toast.LENGTH_SHORT).show();
+            return;
+        }
         File file = new File(downloadsDir, fileName);
-        // 判断文件是否存在
+
+        // 已存在直接打开
         if (file.exists()) {
-            // 在此处处理下载完成后 跳转到文件管理器查看下载的文件
-            openDownloadFile(fileName);
+            openDownloadFile(file);
             return;
         }
 
-        // ================== 显示“正在下载”弹框 ==================
+        // ===== 下载中弹框 =====
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("下载中");
-        builder.setMessage("正在下载 " + fileName + "，请稍候...");
+        builder.setMessage("正在下载 " + fileName + "，请稍候…");
 
-        // 添加一个横向的不确定进度条（可选，更美观）
-        ProgressBar progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        ProgressBar progressBar = new ProgressBar(this, null,
+                android.R.attr.progressBarStyleHorizontal);
         progressBar.setIndeterminate(true);
         builder.setView(progressBar);
-
-        builder.setCancelable(false);  // 下载期间不允许取消（可根据需求改成 true）
+        builder.setCancelable(false);
 
         downloadDialog = builder.create();
         downloadDialog.show();
-        // ====================================================
 
+        // 清理 URL 参数
         if (url.contains("mid")) {
             String midStr = url.replaceAll(".*[?&]mid=([^&]+).*", "$1");
             try {
@@ -613,19 +489,21 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             url = url.replaceAll("[?&]message_id=[^&]*", "").replaceAll("\\?$", "");
         }
 
-        // 获取文件扩展名
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-        request.setDescription("Downloading file...");
         request.setTitle(fileName);
-        request.allowScanningByMediaScanner();
-        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+        request.setDescription("文件下载中");
+        request.setNotificationVisibility(
+                DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+        );
+
+        // ✅ 指定 App 私有目录
+        request.setDestinationUri(Uri.fromFile(file));
+
         DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         long downloadId = dm.enqueue(request);
 
         // 定义超时时间，例如 5 分钟（300000 ms），可根据需求调整
         long timeoutMillis = 1 * 60 * 1000L;
-
         // 使用 Handler 延迟检查
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             DownloadManager.Query query = new DownloadManager.Query();
@@ -654,7 +532,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     if (downloadDialog != null && downloadDialog.isShowing()) {
                         downloadDialog.dismiss();
                     }
-                    openDownloadFile(finalFileName);
+                    unregisterReceiver(this);
+                    openDownloadFile(file);
                 }
             }
         };
@@ -663,39 +542,48 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
     }
 
-    private void openDownloadFile(String fileName) {
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
+    private void openDownloadFile(File file) {
 
-        Uri uri = FileProvider.getUriForFile(webView.getContext(), "com.nsyy.Nsyy.fileprovider", file);
+        Uri uri = FileProvider.getUriForFile(
+                this,
+                "com.nsyy.Nsyy.fileprovider",
+                file
+        );
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-        if (fileName.toLowerCase().endsWith("png") || fileName.toLowerCase().endsWith("jpg") || fileName.toLowerCase().endsWith("jpeg")
-                || fileName.toLowerCase().endsWith("gif") || fileName.toLowerCase().endsWith("webp")) {
+        String name = file.getName().toLowerCase(Locale.ROOT);
+
+        if (name.endsWith(".png") || name.endsWith(".jpg") ||
+                name.endsWith(".jpeg") || name.endsWith(".gif") ||
+                name.endsWith(".webp")) {
+
             intent.setDataAndType(uri, "image/*");
-        } else if (fileName.toLowerCase().endsWith("pdf")) {
+
+        } else if (name.endsWith(".pdf")) {
+
             intent.setDataAndType(uri, "application/pdf");
-        } else if (fileName.toLowerCase().endsWith(".docx") || fileName.toLowerCase().endsWith(".doc")) {
-            intent.setDataAndType(uri, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        } else if (fileName.toLowerCase().endsWith(".xlsx") || fileName.toLowerCase().endsWith("xls")) {
-            intent.setDataAndType(uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        } else if (fileName.toLowerCase().endsWith(".apk")) {
-            // 打开安装包
-            intent.setDataAndType(uri, "application/vnd.android.package-archive");
-            intent.addCategory(Intent.CATEGORY_DEFAULT);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            //intent.setDataAndType(uri, "application/vnd.android.package-archive");
-            // 设置 Intent 的 flags 为 FLAG_ACTIVITY_NEW_TASK，表示新建一个任务进行安装
-            //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        } else if (name.endsWith(".doc") || name.endsWith(".docx")) {
+
+            intent.setDataAndType(uri,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+        } else if (name.endsWith(".xls") || name.endsWith(".xlsx")) {
+
+            intent.setDataAndType(uri,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
         } else {
-            intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            Uri downloadUri = Uri.parse(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath());
-            intent.setDataAndType(downloadUri, "*/*");// 设置要显示的文件类型为所有类型
+            intent.setDataAndType(uri, "*/*");
         }
-        webView.getContext().startActivity(intent);
+
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "未找到可打开该文件的应用", Toast.LENGTH_SHORT).show();
+        }
     }
 
     // 接管返回按键的响应
@@ -780,27 +668,78 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     @JavascriptInterface
     public void takePhoto(){
-        // 检查是否已经获取相机权限
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            // 请求相机权限 和 存储权限
-            String[] permissions = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
-            ActivityCompat.requestPermissions(this, permissions, CAMERA_PERMISSION_REQUEST_CODE);
-        }
+        String[] options = {"拍照", "从文件选择"};
 
-        String filename = "CAMERA_IMG_" + DateFormat.format("yyyyMMdd_hhmmss", Calendar.getInstance(Locale.CHINA)) + ".jpg";
-        // 更新文件名字
-        last_camera_img_name = filename;
-
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), filename);
-        Uri imageUri = FileProvider.getUriForFile(webView.getContext(), "com.nsyy.Nsyy.fileprovider", file);
-
-        Intent captureIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            captureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); //添加这一句表示对目标应用临时授权该Uri所代表的文件
-        }
-        captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
-        startActivityForResult(captureIntent, CAMERA_FILE_RESULT_CODE);
+        new AlertDialog.Builder(MainActivity.this)
+                .setTitle("选择图片来源")
+                .setCancelable(true)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        openCamera();
+                    } else {
+                        openFilePicker();
+                    }
+                })
+                .show();
     }
+
+    private void openCamera() {
+        // 只检查相机权限（不再涉及任何存储权限）
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.CAMERA},
+                    CAMERA_PERMISSION_REQUEST_CODE
+            );
+            return;
+        }
+
+        String filename = "CAMERA_IMG_"
+                + DateFormat.format("yyyyMMdd_HHmmss", Calendar.getInstance(Locale.CHINA))
+                + ".jpg";
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, filename);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES);
+
+        cameraImageUri = getContentResolver()
+                .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+        if (cameraImageUri == null) {
+            Toast.makeText(this, "无法创建图片文件", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+        try {
+            startActivityForResult(intent, REQ_CAMERA);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "未找到相机应用", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openFilePicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES,
+                new String[]{"image/jpeg", "image/png", "image/webp"});
+
+
+        try {
+            startActivityForResult(intent, REQ_PICK_IMAGE);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "未找到文件选择器", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
 
     @JavascriptInterface
     public void scanCode(){
@@ -939,29 +878,50 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         }
 
         // 处理拍照上传
-        if (requestCode == CAMERA_FILE_RESULT_CODE && data == null) {
-            // 拍照结果 TODO 通过 js 返回
-            String base64Str = compressAndEncodeImage();
-            System.out.println(base64Str);
-            base64Str = base64Str.replace("\n", "");
-            String jsonString = "{\"data\": \"%s\"}";
-            String jsonWithUrlSafeBase64 = String.format(jsonString, base64Str);
+        if (requestCode == REQ_CAMERA || requestCode == REQ_PICK_IMAGE) {
+            Uri imageUri = null;
+
+            if (requestCode == REQ_CAMERA) {
+                imageUri = cameraImageUri;
+            } else if (requestCode == REQ_PICK_IMAGE && data != null) {
+                imageUri = data.getData();
+
+                // ✅ 持久化权限（非常重要）
+                if (imageUri != null) {
+                    try {
+                        getContentResolver().takePersistableUriPermission(
+                                imageUri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        );
+                    } catch (SecurityException e) {
+                        Log.w(TAG, "无法持久化 URI 权限（可能不是 SAF 返回）", e);
+                        Toast.makeText(MainActivity.this, "无法持久化 URI 权限（可能不是 SAF 返回）", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+
+            if (imageUri == null) {
+                Log.e(TAG, "imageUri is null");
+                Toast.makeText(MainActivity.this, "图片保存失败", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             try {
-                String js = "javascript:receiveCameraResult('" + jsonWithUrlSafeBase64 + "')";
-                System.out.println("开始执行 JS 方法：" + js);
-                webView.evaluateJavascript(js, new ValueCallback<String>() {
-                    @Override
-                    public void onReceiveValue(String s) {
-                        //将button显示的文字改成JS返回的字符串
-                        System.out.println("成功接收到扫码返回值：" + s);
-                    }
-                });
+                String base64 = compressAndEncodeImageFromUri(imageUri);
+                base64 = base64.replace("\n", "");
+
+                String json = String.format("{\"data\":\"%s\"}", base64);
+                String js = "javascript:receiveCameraResult('" + json + "')";
+
+                webView.evaluateJavascript(js, value ->
+                        Log.d(TAG, "JS 回调成功: " + value)
+                );
+
             } catch (Exception e) {
-                System.out.println("未成功调用 JS 方法 handleCameraResult");
-                e.printStackTrace();
-                // Handle the exception
+                Log.e(TAG, "图片处理失败", e);
+                Toast.makeText(MainActivity.this, "图片处理失败", Toast.LENGTH_SHORT).show();
             }
+
         }
 
         // 处理扫码结果
@@ -1012,31 +972,17 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         }
     }
 
-
     /**
      * 压缩图片
      * @return
      */
-    public static String compressAndEncodeImage() {
-        // 压缩图片
-        Bitmap compressedBitmap = null;
-        try {
-            compressedBitmap = PhotoUtils.getBitmapFromFile(last_camera_img_name);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private String compressAndEncodeImageFromUri(Uri uri) throws IOException {
+        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
 
-        // 将压缩后的 Bitmap 对象转换为 Base64 字符串
-        String base64Image = bitmapToBase64(compressedBitmap);
-        compressedBitmap.recycle();
-        return base64Image;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out);
+        bitmap.recycle();
+
+        return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
     }
-
-    private static String bitmapToBase64(Bitmap bitmap) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
-        byte[] byteArray = byteArrayOutputStream.toByteArray();
-        return Base64.encodeToString(byteArray, Base64.DEFAULT);
-    }
-
 }
