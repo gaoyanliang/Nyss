@@ -7,11 +7,11 @@ apply plugin: 'com.yanzhenjie.andserver'
 apply plugin: 'com.huawei.agconnect'
 
 android {
-    namespace 'com.example.nsyy'
+    namespace 'com.nsyy.Nsyy'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.nsyy"
+        applicationId "com.nsyy.Nsyy"
         minSdk 24
         targetSdk 33
         versionCode 6
@@ -59,7 +59,7 @@ android {
 
 //构建时间
 def generateTime() {
-    return new Date().format("yyyyMMdd")
+    return new Date().format("yyyyMMddHHMMSS")
 }
 
 dependencies {

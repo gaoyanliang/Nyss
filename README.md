@@ -159,9 +159,9 @@ locationManager.requestLocationUpdates()报Can't create handler inside thread th
 
 [Android中一个类的方法调用Activity中的方法](https://www.cnblogs.com/changyiqiang/p/14486015.html)
 
-该功能主要实现在 [web Server](./app/src/main/java/com/example/nsyy/service)
+该功能主要实现在 [web Server](./app/src/main/java/com/example/Nsyy/service)
 
-对 OA 暴露的接口在 [Controller](./app/src/main/java/com/example/nsyy/server)
+对 OA 暴露的接口在 [Controller](./app/src/main/java/com/example/Nsyy/server)
 
 **消息转换器 MessageConverter**
 
@@ -181,7 +181,7 @@ locationManager.requestLocationUpdates()报Can't create handler inside thread th
 
 ### 2.2 获取位置信息
 
-该功能主要实现在 [LocationUtil](./app/src/main/java/com/example/nsyy/utils/LocationUtil.java)
+该功能主要实现在 [LocationUtil](./app/src/main/java/com/example/Nsyy/utils/LocationUtil.java)
 
 功能实现参考以下文章：
 
@@ -217,7 +217,7 @@ Location location = locationManager.getLastKnownLocation(bestProvider);
 
 - [Android获取应用通知栏权限，并跳转通知设置页面（全版本适配）](https://blog.csdn.net/aiynmimi/article/details/102740139)
 
-该功能主要实现在 [notification](./app/src/main/java/com/example/nsyy/notification)
+该功能主要实现在 [notification](./app/src/main/java/com/example/Nsyy/notification)
 
 ### 2.4 使用蓝牙连接蓝牙秤
 
@@ -236,7 +236,7 @@ Android 中暂时没有做到和 IOS 同样的想过，主要因为目前蓝牙�
 - [https://www.an.rustfisher.com/android/connectivity/bluetooth/Bluetooth2_use_sample/#discovering-devices](https://www.an.rustfisher.com/android/connectivity/bluetooth/Bluetooth2_use_sample/#discovering-devices)
 - [https://juejin.cn/post/7225552757607153721](https://juejin.cn/post/7225552757607153721)
 
-该功能主要实现在 [buletooth](./app/src/main/java/com/example/nsyy/utils/BlueToothUtil.java)
+该功能主要实现在 [buletooth](./app/src/main/java/com/example/Nsyy/utils/BlueToothUtil.java)
 
 ### 2.5 扫码
 
@@ -246,7 +246,7 @@ Android 中暂时没有做到和 IOS 同样的想过，主要因为目前蓝牙�
 
 按步骤（添加SDK）接入： https://developer.huawei.com/consumer/cn/service/josp/agc/index.html#/myProject/388421841221765522/97458334310914890?appId=109560375
 
-该功能主要实现在 [code_scan](./app/src/main/java/com/example/nsyy/code_scan)
+该功能主要实现在 [code_scan](./app/src/main/java/com/example/Nsyy/code_scan)
 
 华为提供4种调用方式，可以根据需求选择相应的调用方式构建扫码功能。
 
