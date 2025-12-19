@@ -16,6 +16,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,6 +26,7 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
@@ -36,6 +38,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.ValueCallback;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 import androidx.core.app.ActivityOptionsCompat;
 import android.content.ActivityNotFoundException;
@@ -52,6 +55,7 @@ import android.util.Base64;
 
 import com.nsyy.nsyy.config.MySharedPreferences;
 import com.nsyy.nsyy.config.NsyyConfig;
+import com.nsyy.nsyy.config.PrivacyPolicyDialogFragment;
 import com.nsyy.nsyy.email.EmailDatabaseHelper;
 import com.nsyy.nsyy.message.FileHelper;
 import com.nsyy.nsyy.message.MessageDatabaseHelper;
@@ -62,7 +66,6 @@ import com.nsyy.nsyy.utils.LocationUtil;
 import com.nsyy.nsyy.utils.NotificationUtil;
 import com.nsyy.nsyy.utils.PermissionUtil;
 
-import com.nsyy.nsyy.utils.PhotoUtils;
 import com.nsyy.nsyy.utils.SocketUtil;
 import com.nsyy.nsyy.vivo_scan.VivoQRCodeScanActivity;
 import com.huawei.hms.hmsscankit.ScanUtil;
@@ -91,8 +94,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     private WebView webView;
 
-    public static String last_camera_img_name = null;
-
     // 处理文件选择上传
     private ValueCallback<Uri[]> mFilePathCallback;
     private static final int REQUEST_CODE_FILE_CHOOSER = 1;
@@ -105,6 +106,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private static final int REQ_PICK_IMAGE = 10002;
     private Uri cameraImageUri;
 
+    private boolean hasShownPrivacyDialog = false;
+
+    private RelativeLayout loadingOverlay;
 
     public static MessageDatabaseHelper getDatabaseHelper() {
         return dbHelper;
@@ -146,19 +150,77 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        dbHelper = MessageDatabaseHelper.getInstance(this);
-        emailHelper = EmailDatabaseHelper.getInstance(this);
 
-        MySharedPreferences.init(this);
+        SharedPreferences sp = getSharedPreferences("app_config", MODE_PRIVATE);
+        boolean hasAgreed = sp.getBoolean("has_agreed_privacy", false);
+
+        if (!hasAgreed) {
+            // 只设置主布局（带加载层），显示加载中
+            setContentView(R.layout.activity_main);
+
+            // 弹出隐私政策弹窗
+            if (!hasShownPrivacyDialog) {
+                hasShownPrivacyDialog = true;
+                new PrivacyPolicyDialogFragment().show(getSupportFragmentManager(), "privacy_dialog");
+            }
+            return;
+        }
+
+        // 已同意，直接完整初始化
+        fullSetupAfterAgree();
+    }
+
+    // 新增：仅初始化 WebView 基本设置，不加载页面、不申请权限
+    private void initBasicWebView() {
+        // === 先初始化 WebView 和加载层
+        setContentView(R.layout.activity_main);  // 确保已设置布局
+
+        // 找到加载覆盖层
+        loadingOverlay = findViewById(R.id.loading_overlay);
 
         // 初始化 WebView
         webView = findViewById(R.id.webView);
-        SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
-        editor.putString("load_url", NsyyConfig.LOAD_RUL);
-        editor.apply();
-        initView();
 
+        // 基本的 WebView 设置
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setDatabaseEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true); // 设置允许JS弹窗
+        webSettings.setJavaScriptEnabled(true);  // 设置 WebView 允许执行 JavaScript 脚本
+        webSettings.setAllowContentAccess(true); // 是否可访问Content Provider的资源，默认值 true
+        webSettings.setAllowFileAccess(true);    // 是否可访问本地文件，默认值 true
+        // 对于Android 5+设备
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
+        // Enable Javascript
+        webView.addJavascriptInterface(this, "AndroidInterface");
+        webView.setBackgroundColor(Color.WHITE);  // 防止 WebView 背景透明导致黑屏
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);  // 硬件加速
+        }
+
+        // 关键：每次初始化 WebView 时都强制显示加载层
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(View.VISIBLE);
+        }
+    }
+
+
+    // 同意后执行的完整初始化
+    public void fullSetupAfterAgree() {
+        initBasicWebView();  // 先确保 WebView 已初始化
+
+        // === 现在才开始敏感操作 ===
+
+        // 数据库初始化
+        dbHelper = MessageDatabaseHelper.getInstance(this);
+        emailHelper = EmailDatabaseHelper.getInstance(this);
+        MySharedPreferences.init(this);
+
+        // 版本检测、文件工具
         AppVersionUtil.getInstance().init(this);
         FileHelper.getInstance().setContext(this);
 
@@ -181,8 +243,12 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // socket 连接
         SocketUtil.getInstance().setContext(this);
 
+        // === 最后加载页面 ===
+        loadView();
+
         setAutoInitEnabled(true);
     }
+
 
     //    https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/android-client-dev-0000001050042041
     private void setAutoInitEnabled(final boolean isEnable) {
@@ -196,61 +262,55 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
 
-    private void initView() {
-        if (webView == null) {
-            webView = findViewById(R.id.webView);
-        }
-
-        // Enable Javascript
-        WebSettings webSettings = webView.getSettings();
-        webSettings.setDatabaseEnabled(true);
-        webSettings.setDomStorageEnabled(true);
-        webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
-        webSettings.setJavaScriptCanOpenWindowsAutomatically(true); // 设置允许JS弹窗
-        webSettings.setJavaScriptEnabled(true); // 设置 WebView 允许执行 JavaScript 脚本
-        webSettings.setAllowContentAccess(true); // 是否可访问Content Provider的资源，默认值 true
-        webSettings.setAllowFileAccess(true);    // 是否可访问本地文件，默认值 true
-        // 对于Android 5+设备
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        }
-
-        webView.addJavascriptInterface(this, "AndroidInterface");
+    private void loadView() {
+        SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
+        editor.putString("load_url", NsyyConfig.LOAD_RUL);
+        editor.apply();
 
         // 确保跳转到另一个网页时仍然在当前 WebView 中显示,而不是调用浏览器打开
         webView.setWebViewClient(new WebViewClient() {
-
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                // 在这里处理页面开始加载的逻辑
                 Log.d("WebView", "开始加载: " + url);
-                // 可以显示进度条等
+                // 开始加载时确保显示加载层（保险起见）
+                if (loadingOverlay != null) {
+                    loadingOverlay.setVisibility(View.VISIBLE);
+                }
             }
-
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                System.out.println("=====> 页面加载完成");
-            }
+                Log.d("WebView", "页面加载完成: " + url);
 
+                // 延迟 300ms 隐藏，确保首帧已渲染
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    if (loadingOverlay != null) {
+                        loadingOverlay.setVisibility(View.GONE);
+                    }
+                }, 1000);
+            }
             @Override
             public void onLoadResource(WebView view, String url) {
                 super.onLoadResource(view, url);
-                // 每次WebView加载资源时都会调用
                 Log.d("WebView", "正在加载资源: " + url);
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
-                Log.e("WEBVIEW", "加载错误: " + error.getDescription() + " Code: " + error.getErrorCode());
+                Log.e("WebView", "加载错误: " + error.getDescription() + " Code: " + error.getErrorCode());
+                if (loadingOverlay != null) {
+                    loadingOverlay.setVisibility(View.GONE);
+                }
+                // 可选：显示错误提示 Toast
+//                 Toast.makeText(MainActivity.this, "加载失败，请检查网络", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
                 super.onReceivedHttpError(view, request, errorResponse);
-                Log.e("WEBVIEW", "HTTP错误: " + errorResponse.getStatusCode() + " " + errorResponse);
+                Log.e("WebView", "HTTP错误: " + errorResponse.getStatusCode() + " " + errorResponse);
             }
 
             @Override
@@ -314,7 +374,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                         if (base64String.isEmpty()) {
                             return false;
                         }
-                        System.out.println("======> 下载地址：" + url);
+                        Log.e("WebView", "下载地址: " + url);
 
                         fileName = base64decode(base64String);
                         if (fileName.contains("/")) {
@@ -325,27 +385,14 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                         return false;
                     }
 
-                    // 请求存储权限
+                    // 开始下载
                     startDownload(url, fileName);
-
-
-//                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-//                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_FILE_PERMISSION_CODE);
-//                    } else {
-//                        // 下载文件
-////                        if (url.contains("192.168.124")) {
-////                            url = "http://120.194.96.67:6080/att_download?save_path=L2hvbWUvY2MvYXR0LzIwMjUvMjAyNS0wNi0xNy8xNzUwMTI4OTM1LjQ4NDk1OS5qcGc=";
-////                            // fileName = "484959.jpg";
-////                        }
-//                        startDownload(url, fileName);
-//                    }
 
                 } catch (Exception e) {
                     // 捕获所有异常，防止崩溃
                     e.printStackTrace();
-                    return false;  // 或 Toast 提示用户
+                    return false;
                 }
-
                 return true;
             }
         });
@@ -417,8 +464,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     startActivityForResult(Intent.createChooser(intent, "选择文件"), REQUEST_CODE_FILE_CHOOSER);
                 } catch (ActivityNotFoundException e) {
                     mFilePathCallback = null;
-                    System.out.println("无法打开文件选择器");
-//                    Toast.makeText(MainActivity.this, "无法打开文件选择器", Toast.LENGTH_SHORT).show();
+                    Log.d("WebView", "无法打开文件选择器");
+                    Toast.makeText(MainActivity.this, "无法打开文件选择器", Toast.LENGTH_SHORT).show();
                     return false;
                 }
                 return true;
@@ -427,6 +474,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 清除之前的缓存
         webView.clearCache(true);
+
         // 加载 南石OA
         webView.loadUrl(NsyyConfig.LOAD_RUL);
     }
@@ -611,7 +659,10 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             bringWebViewActivityToFront();
         }
 
-        webView.onResume();
+        // 加 null 判断，防止首次同意前 webView 还没初始化
+        if (webView != null) {
+            webView.onResume();
+        }
     }
 
     private boolean isAppInBackground() {
@@ -635,17 +686,19 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         super.onPause();
         System.out.println("===> webview 暂停");
         FileHelper.RUN_IN_BACKGROUND = true;
-        webView.onPause();
+        if (webView != null) {
+            webView.onPause(); // 加 null 判断
+        }
 
     }
 
     @Override
     protected void onDestroy() {
-        webView.loadUrl("about:blank");
-        webView.destroy();
+        if (webView != null) {
+            webView.loadUrl("about:blank");
+            webView.destroy();
+        }
         super.onDestroy();
-
-//        socketManager.disconnect(); // 避免内存泄漏
 
         if (downloadDialog != null && downloadDialog.isShowing()) {
             downloadDialog.dismiss();
