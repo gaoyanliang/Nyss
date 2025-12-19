@@ -374,7 +374,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                         if (base64String.isEmpty()) {
                             return false;
                         }
-                        Log.e("WebView", "下载地址: " + url);
+                        Log.i("WebView", "下载地址: " + url);
 
                         fileName = base64decode(base64String);
                         if (fileName.contains("/")) {
