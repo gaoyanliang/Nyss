@@ -5,7 +5,6 @@
     <!-- 网络 -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- 相机（扫码） -->
 
@@ -18,7 +17,6 @@
     <!-- 定位（蓝牙 / 业务定位） -->
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <!-- 通知 -->
 
@@ -27,12 +25,6 @@
     <!-- 前台服务（如确实有） -->
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
-    <!-- 文件权限 使用 SAF -->
-
-    <!--    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />-->
-    <!--    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />-->
-    <!--    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />-->
 
     <!-- 开机自启动权限 -->
 

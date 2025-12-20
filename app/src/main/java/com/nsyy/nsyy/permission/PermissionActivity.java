@@ -71,7 +71,7 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
 
             XXPermissions.with(this)
                     .permission(Permission.ACCESS_COARSE_LOCATION)
-                    .permission(Permission.ACCESS_FINE_LOCATION)
+//                    .permission(Permission.ACCESS_FINE_LOCATION)
                     .interceptor(new PermissionInterceptor())
                     .request(new OnPermissionCallback() {
 
@@ -89,8 +89,7 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
 
             // 判断是否已经获取位置权限，没有获取先获取位置权限
             if (XXPermissions.isGranted(this, new String[]{
-                    Permission.ACCESS_COARSE_LOCATION,
-                    Permission.ACCESS_FINE_LOCATION})) {
+                    Permission.ACCESS_COARSE_LOCATION})) {
 
                 locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
@@ -105,7 +104,7 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
 
                 if (ActivityCompat.checkSelfPermission(this,
                         android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                        && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        ) {
                     // TODO: Consider calling
                     //    ActivityCompat#requestPermissions
                     // here to request the missing permissions, and then overriding
@@ -128,7 +127,7 @@ public class PermissionActivity extends AppCompatActivity implements View.OnClic
                     openGPS();
 
                     // location updates: at least 1 meter and 200millsecs change
-                    if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                         locationManager.requestLocationUpdates(bestProvider, 200, 1, nsyyLocationListener);
                     }
                 }

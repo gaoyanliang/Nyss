@@ -75,9 +75,7 @@ public class NsyyController {
         ReturnData data = new ReturnData();
         // 先检查权限（用 ApplicationContext 安全）
         Context appContext = AppApplication.getContext();  // 或传入 context
-        if (ContextCompat.checkSelfPermission(appContext,
-                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // 未授权，发送本地广播，通知 MainActivity 申请
             LocalBroadcastHelper.sendRequestLocationPermission();
 

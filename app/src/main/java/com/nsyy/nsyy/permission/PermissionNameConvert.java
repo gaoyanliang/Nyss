@@ -106,7 +106,7 @@ public final class PermissionNameConvert {
                case Permission.ACCESS_BACKGROUND_LOCATION: {
                    String hint;
                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                           !permissions.contains(Permission.ACCESS_FINE_LOCATION) &&
+
                            !permissions.contains(Permission.ACCESS_COARSE_LOCATION)) {
                        hint = context.getString(R.string.common_permission_location_background);
                    } else {

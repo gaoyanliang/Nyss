@@ -56,8 +56,7 @@ public class PermissionUtil {
     public static void checkLocationPermission(Context mContext) {
         // 判断是否已经获取位置权限，没有获取先获取位置权限
         if (!XXPermissions.isGranted(mContext, new String[]{
-                Permission.ACCESS_COARSE_LOCATION,
-                Permission.ACCESS_FINE_LOCATION})) {
+                Permission.ACCESS_COARSE_LOCATION})) {
 
             new android.app.AlertDialog.Builder(mContext)
                     .setTitle("需要位置权限")
@@ -65,7 +64,6 @@ public class PermissionUtil {
                     .setPositiveButton("去开启", (dialog, which) -> {
                         XXPermissions.with(mContext)
                                 .permission(Permission.ACCESS_COARSE_LOCATION)
-                                .permission(Permission.ACCESS_FINE_LOCATION)
                                 .interceptor(new PermissionInterceptor())
                                 .request(new OnPermissionCallback() {
 
