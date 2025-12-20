@@ -6,11 +6,13 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 
 import com.nsyy.Nsyy.R;
+import com.nsyy.nsyy.MainActivity;
 import com.nsyy.nsyy.permission.PermissionInterceptor;
 import com.nsyy.nsyy.permission.PermissionNameConvert;
 import com.hjq.permissions.OnPermissionCallback;
@@ -49,8 +51,6 @@ public class PermissionUtil {
                         }
                     });
         }
-
-
     }
 
     public static void checkLocationPermission(Context mContext) {
@@ -58,21 +58,34 @@ public class PermissionUtil {
         if (!XXPermissions.isGranted(mContext, new String[]{
                 Permission.ACCESS_COARSE_LOCATION,
                 Permission.ACCESS_FINE_LOCATION})) {
-            XXPermissions.with(mContext)
-                    .permission(Permission.ACCESS_COARSE_LOCATION)
-                    .permission(Permission.ACCESS_FINE_LOCATION)
-                    .interceptor(new PermissionInterceptor())
-                    .request(new OnPermissionCallback() {
 
-                        @Override
-                        public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
-                            if (!allGranted) {
-                                return;
-                            }
-                            toast(String.format(mContext.getString(R.string.demo_obtain_permission_success_hint),
-                                    PermissionNameConvert.getPermissionString(mContext, permissions)));
-                        }
-                    });
+            new android.app.AlertDialog.Builder(mContext)
+                    .setTitle("需要位置权限")
+                    .setMessage("为了使用签到、定位考勤功能，本应用需要访问您的位置信息。\n\n我们仅在您使用相关功能时获取位置，不会后台持续定位。")
+                    .setPositiveButton("去开启", (dialog, which) -> {
+                        XXPermissions.with(mContext)
+                                .permission(Permission.ACCESS_COARSE_LOCATION)
+                                .permission(Permission.ACCESS_FINE_LOCATION)
+                                .interceptor(new PermissionInterceptor())
+                                .request(new OnPermissionCallback() {
+
+                                    @Override
+                                    public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                                        if (!allGranted) {
+                                            return;
+                                        }
+                                        toast(String.format(mContext.getString(R.string.demo_obtain_permission_success_hint),
+                                                PermissionNameConvert.getPermissionString(mContext, permissions)));
+                                    }
+                                });
+                    })
+                    .setNegativeButton("暂不开启", (dialog, which) -> {
+                        Toast.makeText(mContext, "未开启位置权限，定位打卡功能将无法使用", Toast.LENGTH_LONG).show();
+                    })
+                    .setCancelable(false)  // 防止用户直接关闭对话框
+                    .show();
+
+
         }
 
     }
@@ -85,8 +98,8 @@ public class PermissionUtil {
      */
     public static void checkNotification(final Context context) {
         if (!NotificationUtil.isNotifyEnabled(context)) {
-            new AlertDialog.Builder(context).setTitle("温馨提示")
-                    .setMessage("你还未开启系统通知，将影响消息的接收，要去开启吗？")
+            new AlertDialog.Builder(context).setTitle("需要通知权限")
+                    .setMessage("为了及时接收 OA 重要消息、审批提醒、公告通知等推送，本应用需要发送通知权限。\n\n您可以随时在系统设置中关闭。")
                     .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {

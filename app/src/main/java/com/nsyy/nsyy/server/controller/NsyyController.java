@@ -1,7 +1,9 @@
 package com.nsyy.nsyy.server.controller;
 
+import com.nsyy.nsyy.service.LocalBroadcastHelper;
 import com.nsyy.nsyy.config.MySharedPreferences;
 import com.nsyy.nsyy.exception.BluetoothException;
+import com.nsyy.nsyy.permission.AppApplication;
 import com.nsyy.nsyy.server.api.AppInfo;
 import com.nsyy.nsyy.server.api.Notification;
 import com.nsyy.nsyy.server.api.SpeechInfo;
@@ -19,8 +21,13 @@ import com.yanzhenjie.andserver.annotation.RequestBody;
 import com.yanzhenjie.andserver.annotation.RequestMethod;
 import com.yanzhenjie.andserver.annotation.RequestParam;
 import com.yanzhenjie.andserver.annotation.RestController;
+
+import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
+
+import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -64,7 +71,23 @@ public class NsyyController {
     @CrossOrigin(methods = {RequestMethod.GET})
     @GetMapping("/location")
     public ReturnData location() {
+
         ReturnData data = new ReturnData();
+        // 先检查权限（用 ApplicationContext 安全）
+        Context appContext = AppApplication.getContext();  // 或传入 context
+        if (ContextCompat.checkSelfPermission(appContext,
+                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // 未授权，发送本地广播，通知 MainActivity 申请
+            LocalBroadcastHelper.sendRequestLocationPermission();
+
+            data.setSuccess(false);
+            data.setCode(ReturnData.ERROR.FAILED_TO_GET_LOCATION);
+            data.setErrorMsg("未开启定位权限, 请先打开定位权限");
+            data.setData("未开启定位权限, 请先打开定位权限");
+            return data;
+        }
+
         LocationUtil util = LocationUtil.getInstance();
 
         // 1. 优先返回缓存（99% 情况 < 50ms）

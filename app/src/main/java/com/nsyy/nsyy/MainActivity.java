@@ -51,6 +51,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import android.util.Base64;
 
 import com.nsyy.nsyy.config.MySharedPreferences;
@@ -65,6 +67,7 @@ import com.nsyy.nsyy.utils.AppVersionUtil;
 import com.nsyy.nsyy.utils.LocationUtil;
 import com.nsyy.nsyy.utils.NotificationUtil;
 import com.nsyy.nsyy.utils.PermissionUtil;
+import com.nsyy.nsyy.service.LocalBroadcastHelper;
 
 import com.nsyy.nsyy.utils.SocketUtil;
 import com.nsyy.nsyy.vivo_scan.VivoQRCodeScanActivity;
@@ -101,6 +104,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private static MessageDatabaseHelper dbHelper;
     private static EmailDatabaseHelper emailHelper;
 
+    // 用于处理定位权限 的接收器
+    private BroadcastReceiver permissionReceiver;
 
     private static final int REQ_CAMERA = 10001;
     private static final int REQ_PICK_IMAGE = 10002;
@@ -230,9 +235,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 注册广播接收器
         registerReceiver(noticeReceiver, new IntentFilter("LOAD_TARGET_PAGE"));
+        registerPermissionReceiver();
 
-        // 检查权限: 这里需要开启位置权限 & 位置服务
-        PermissionUtil.checkLocationPermission(this);
+        // 检查权限:  定位权限改用使用时申请
         LocationUtil.getInstance().setContext(this);
 
         // 消息通知
@@ -246,7 +251,31 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // === 最后加载页面 ===
         loadView();
 
-        setAutoInitEnabled(true);
+        setAutoInitEnabled(false);
+    }
+
+    private void registerPermissionReceiver() {
+        permissionReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (LocalBroadcastHelper.ACTION_REQUEST_LOCATION_PERMISSION.equals(action)) {
+                    // 切到主线程（虽然 LocalBroadcastManager 默认在主线程发送，但保险）
+                    runOnUiThread(() -> {
+                        PermissionUtil.checkLocationPermission(MainActivity.this);
+                    });
+                } else if (LocalBroadcastHelper.ACTION_REQUEST_NOTIFICATION_PERMISSION.equals(action)) {
+                    runOnUiThread(() -> {
+                        PermissionUtil.checkNotification(MainActivity.this);
+                    });
+                }
+            }
+        };
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(LocalBroadcastHelper.ACTION_REQUEST_LOCATION_PERMISSION);
+        filter.addAction(LocalBroadcastHelper.ACTION_REQUEST_NOTIFICATION_PERMISSION);
+        LocalBroadcastManager.getInstance(this).registerReceiver(permissionReceiver, filter);
     }
 
 
@@ -716,6 +745,10 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         // 注销广播接收器
         unregisterReceiver(noticeReceiver);
+
+        if (permissionReceiver != null) {
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(permissionReceiver);
+        }
     }
 
 
@@ -740,11 +773,15 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // 只检查相机权限（不再涉及任何存储权限）
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[]{Manifest.permission.CAMERA},
-                    CAMERA_PERMISSION_REQUEST_CODE
-            );
+            new AlertDialog.Builder(this)
+                    .setTitle("权限请求")
+                    .setMessage("需要访问相机权限，以便拍照上传附件或扫码")
+                    .setPositiveButton("允许", (dialog, which) -> ActivityCompat.requestPermissions(
+                            this, new String[]{Manifest.permission.CAMERA},
+                            CAMERA_PERMISSION_REQUEST_CODE)
+                    )
+                    .setNegativeButton("拒绝", null)
+                    .show();
             return;
         }
 
@@ -843,17 +880,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         ActivityCompat.startActivityForResult(this, intent, REQUEST_CODE_VIVO_SCAN, optionsCompat.toBundle());
     }
 
-    /**
-     * Call the customized view.
-     */
-    public void newViewBtnClick() {
-        // CAMERA_REQ_CODE为用户自定义，用于接收权限校验结果的请求码
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            this.requestPermissions(
-                    new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE},
-                    DEFAULT_VIEW);
-        }
-    }
 
     /**
      * Call back the permission application result. If the permission application is successful, the barcode scanning view will be displayed.
@@ -869,7 +895,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // 用户授予了存储权限，开始下载
                 Toast.makeText(MainActivity.this, "存储权限已获取，请重新点击下载", Toast.LENGTH_SHORT).show();
-
             } else {
                 // 用户拒绝了存储权限，显示提示信息
                 Toast.makeText(MainActivity.this, "没有存储权限，无法下载文件", Toast.LENGTH_SHORT).show();
