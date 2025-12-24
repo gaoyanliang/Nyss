@@ -34,3 +34,7 @@
 
 # 荣耀 混淆脚本
 -keep class com.hihonor.push.**{*;}
+
+# oppo 混淆脚本
+-keep public class * extends android.app.Service
+-keep class com.heytap.msp.** { *;}

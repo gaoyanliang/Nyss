@@ -580,6 +580,17 @@ Client ID: a35c616c0e7d4efbbfa083e7c51a3936
 Client Secret: 7F8eVjHhqVWAYGAstUMDodoxdt2afd3E
 SDK：mcs-services.json
 
+#### OPPO
+
+AppID： 36651171
+AppKey： 44d06ef650aa47f0ba3d9369288b0780
+AppSecret： 995cfeb6d8884aa3b5e110540b63b989
+appserversecret: afb2df43e28444a881137202f4b46d99  
+SDK： app/libs/com.heytap.msp_V3.7.1.aar
+
+
+
+
 
 
 

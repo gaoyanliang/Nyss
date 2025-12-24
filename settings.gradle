@@ -12,10 +12,16 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // 华为
         maven {url 'https://developer.huawei.com/repo/'}
+        // 荣耀
         maven {url 'https://developer.hihonor.com/repo'}
         // JitPack 远程仓库：https://jitpack.io
         maven { url 'https://jitpack.io' }
+        // oppo
+        flatDir {
+            dirs "$rootDir/app/libs"
+        }
     }
 }
 

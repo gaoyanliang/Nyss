@@ -1,5 +1,6 @@
 package com.nsyy.nsyy;
 
+import com.heytap.msp.push.HeytapPushManager;
 import com.hihonor.push.sdk.HonorPushClient;
 import com.nsyy.Nsyy.R;
 import android.Manifest;
@@ -63,6 +64,7 @@ import com.nsyy.nsyy.email.EmailDatabaseHelper;
 import com.nsyy.nsyy.message.FileHelper;
 import com.nsyy.nsyy.message.MessageDatabaseHelper;
 import com.nsyy.nsyy.service.NsServerService;
+import com.nsyy.nsyy.service.NsyyOppoMessageService;
 import com.nsyy.nsyy.service.NsyyServerBroadcastReceiver;
 import com.nsyy.nsyy.utils.AppVersionUtil;
 import com.nsyy.nsyy.utils.LocationUtil;
@@ -95,6 +97,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     public static final int REQUEST_FILE_PERMISSION_CODE = 666;
     public static final int CAMERA_PERMISSION_REQUEST_CODE= 777;
     public static final String TAG = "Nsyy";
+
+    public static boolean oppoFlag = true;
 
     private WebView webView;
 
@@ -333,6 +337,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             HmsMessaging.getInstance(this).setAutoInitEnabled(true);
         } else if (isBrand("honor")) {
             Log.d("Device", "这是荣耀设备");
+
             //  https://developer.honor.com/cn/docs/11002/guides/sdk-base-api
             boolean isSupport = HonorPushClient.getInstance().checkSupportHonorPush(getApplicationContext());
             if (isSupport) {
@@ -342,8 +347,33 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             }
         } else if (isBrand("vivo")) {
             Log.d("Device", "这是vivo或iQOO设备");
+
         } else if (isBrand("oppo")) {
             Log.d("Device", "这是OPPO、一加或Realme设备");
+
+            // https://open.oppomobile.com/documentation/page/info?id=11221
+            if (HeytapPushManager.isSupportPush(this)) {
+                HeytapPushManager.init(this, true);
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        while (oppoFlag) {
+                            HeytapPushManager.register(getApplicationContext(),
+                                    "44d06ef650aa47f0ba3d9369288b0780",
+                                    "995cfeb6d8884aa3b5e110540b63b989",
+                                    new NsyyOppoMessageService());//setPushCallback接口也可设置callback
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }).start();
+            } else {
+                Toast.makeText(MainActivity.this, "当前系统不支持消息推送", Toast.LENGTH_SHORT).show();
+            }
         } else {
             Toast.makeText(MainActivity.this, "当前设备不支持消息推送", Toast.LENGTH_SHORT).show();
         }
@@ -384,6 +414,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 Log.d("WebView", "正在加载资源: " + url);
             }
 
+            @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
@@ -398,9 +429,12 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             @Override
             public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
                 super.onReceivedHttpError(view, request, errorResponse);
-                Log.e("WebView", "HTTP错误: " + errorResponse.getStatusCode() + " " + errorResponse);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    Log.e("WebView", "HTTP错误: " + errorResponse.getStatusCode() + " " + errorResponse);
+                }
             }
 
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();

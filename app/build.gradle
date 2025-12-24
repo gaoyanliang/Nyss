@@ -93,7 +93,7 @@ dependencies {
     implementation 'com.yanzhenjie.andserver:api:2.1.12'
     annotationProcessor 'com.yanzhenjie.andserver:processor:2.1.12'
 
-    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'com.alibaba:fastjson:1.1.54.android'
 
     // Add dependencies.
@@ -114,4 +114,10 @@ dependencies {
 
     // 荣耀推送
     implementation 'com.hihonor.mcs:push:8.0.12.307'
+
+    // OPPO 推送
+    implementation(name: 'com.heytap.msp_V3.7.1', ext: 'aar')
+    // oppo 以下依赖都需要添加
+    // implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'androidx.annotation:annotation:1.1.0'
 }
