@@ -120,4 +120,7 @@ dependencies {
     // oppo 以下依赖都需要添加
     // implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'androidx.annotation:annotation:1.1.0'
+
+    //配置 vivo vpush SDK的编译依赖
+    implementation 'vivo:vpush:4.1.0.0'
 }

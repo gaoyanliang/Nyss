@@ -5,6 +5,8 @@ pluginManagement {
         gradlePluginPortal()
         maven {url 'https://developer.huawei.com/repo/'}
         maven {url 'https://developer.hihonor.com/repo'}
+        // 配置 vivo vpush SDK的Maven仓地址
+        maven{ url 'https://repos.vivo.com.cn/maven/repository/external-lib/'}
     }
 }
 dependencyResolutionManagement {
@@ -22,6 +24,8 @@ dependencyResolutionManagement {
         flatDir {
             dirs "$rootDir/app/libs"
         }
+        // 配置 vivo vpush SDK的Maven仓地址
+        maven{ url 'https://repos.vivo.com.cn/maven/repository/external-lib/'}
     }
 }
 

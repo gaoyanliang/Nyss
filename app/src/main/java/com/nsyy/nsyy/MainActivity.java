@@ -26,6 +26,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.View;
@@ -79,6 +80,11 @@ import com.huawei.hms.ml.scan.HmsScan;
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions;
 import com.huawei.hms.push.HmsMessaging;
 import com.king.camera.scan.CameraScan;
+import com.vivo.push.IPushActionListener;
+import com.vivo.push.PushClient;
+import com.vivo.push.PushConfig;
+import com.vivo.push.listener.IPushQueryActionListener;
+import com.vivo.push.util.VivoPushException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -347,6 +353,53 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             }
         } else if (isBrand("vivo")) {
             Log.d("Device", "这是vivo或iQOO设备");
+
+            // https://dev.vivo.com.cn/documentCenter/doc/365
+            //初始化push
+            try{
+                //PushConfig.agreePrivacyStatement属性及含义说明请参考接口文档
+                //使用方法
+                PushConfig config = new PushConfig.Builder()
+                        .agreePrivacyStatement(true)
+                        .build();
+                PushClient.getInstance(this).initialize(config);
+            }catch(VivoPushException e) {
+                //此处异常说明是有必须的vpush配置未配置所致，需要仔细检查集成指南的各项配置。
+                e.printStackTrace();
+                Toast.makeText(MainActivity.this, "当前系统不支持消息推送", Toast.LENGTH_SHORT).show();
+            }
+
+            //打开push开关,关闭为turnOffPush，详见api接入文档
+            PushClient.getInstance(getApplicationContext()).turnOnPush(new IPushActionListener() {
+                @Override
+                public void onStateChanged(final int state) {
+                    // 开关状态处理， 0代表成功 建议在state=0后获取；
+                    Log.d(TAG, "启用 vivo vpush结果 state= " + state + "  (0:启用成功;其他:启用失败,参考：公共状态码)");
+                    if (state == 0) {
+                        //订阅成功后再获取regid
+                        PushClient.getInstance(MainActivity.this).getRegId(new IPushQueryActionListener() {
+                            @Override
+                            public void onSuccess(String s) {
+                                String regId = s;
+                                String log1 = "启用vpush成功 state= " + state + " 查询应用的regId= " + regId;
+                                Log.d(TAG, log1);
+                                if (!TextUtils.isEmpty(s)) {
+                                    SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
+                                    editor.putString("token", s);
+                                    editor.apply();
+                                }
+                            }
+
+                            @Override
+                            public void onFail(Integer integer) {
+                                String errorCode = " 查询regid失败code= " + integer;
+                                String log1 = "启用vpush成功 state= " + state + " 查询应用的regId失败,code= " + errorCode;
+                                Log.d(TAG, log1);
+                            }
+                        });
+                    }
+                }
+            });
 
         } else if (isBrand("oppo")) {
             Log.d("Device", "这是OPPO、一加或Realme设备");

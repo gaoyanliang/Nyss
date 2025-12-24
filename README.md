@@ -589,7 +589,12 @@ appserversecret: afb2df43e28444a881137202f4b46d99
 SDK： app/libs/com.heytap.msp_V3.7.1.aar
 
 
+#### VIVO
 
+App-ID: 106010793
+Cp-ID: d23e4be0e546f1f37f60
+AppKey: 11f1452de50721734e395fbc0a1624fc
+AppSecret: efdf2033-4d88-4c79-8e6d-4ad1cd950fe9
 
 
 
