@@ -30,6 +30,7 @@ import android.os.Build;
 import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
 @RestController
@@ -216,7 +217,7 @@ public class NsyyController {
             editor.putString("password", password);
             editor.putString("version", version);
             editor.putInt("pers_id", pers_id);
-            editor.putString("brand", Build.BRAND);
+            editor.putString("brand", Build.MANUFACTURER.toUpperCase(Locale.ROOT));
             editor.apply();
 
             System.out.println("save user info username: " + username + " password: " +

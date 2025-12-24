@@ -560,6 +560,28 @@ Services:Apple Push Notifications service (APNs)
 证书密钥 gyl.2015
 
 
+### 消息推送接入
+
+Gradle版本： 8.1.1
+
+SHA256证书指纹查看命令： keytool -list -v -keystore /Users/gaoyanliang/nsyy/android/APK/GenerateAPK.jks
+
+#### 荣耀
+
+荣耀： https://developer.honor.com/cn/docs/11002/guides/introduction
+
+应用名称: 南石医院综合管理平台
+应用包名: com.nsyy.Nsyy
+SHA256证书指纹1: 058640EF97BBA38AD21A67AADA50A553DFD1FB1425E8F3E4CD0287F967464A32
+申请时间: 2025-12-23 17:07:14
+APP ID: 104537220
+APP Secret: 4d42a3cc107ea679bcb00a313d812e0ae165ec3fae96995adc8f779ac93d9098
+Client ID: a35c616c0e7d4efbbfa083e7c51a3936
+Client Secret: 7F8eVjHhqVWAYGAstUMDodoxdt2afd3E
+SDK：mcs-services.json
+
+
+
 
 
 

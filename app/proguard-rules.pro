@@ -31,3 +31,6 @@
 -keep class * extends com.huawei.hms.core.aidl.IMessageEntity{ *; }
 -keep public class com.huawei.location.nlp.network.** {*; }
 -keep class com.huawei.wisesecurity.ucs.**{*;}
+
+# 荣耀 混淆脚本
+-keep class com.hihonor.push.**{*;}

@@ -5,6 +5,7 @@ plugins {
 apply plugin: 'com.yanzhenjie.andserver'
 // Add the information to the bottom of the file.
 apply plugin: 'com.huawei.agconnect'
+apply plugin: 'com.hihonor.mcs.asplugin'
 
 android {
     namespace 'com.nsyy.Nsyy'
@@ -38,6 +39,7 @@ android {
     }
     buildTypes {
         debug {
+            minifyEnabled false  // 确保 false
             signingConfig signingConfigs.config
         }
         release {
@@ -109,4 +111,7 @@ dependencies {
     implementation 'com.huawei.hms:push:6.13.0.300'
     // 添加HMS Core Installer SDK编译依赖，自动引导用户下载HMS Core APK。
     implementation 'com.huawei.hms:hmscoreinstaller:6.7.0.300'
+
+    // 荣耀推送
+    implementation 'com.hihonor.mcs:push:8.0.12.307'
 }

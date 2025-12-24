@@ -22,7 +22,7 @@ public class NsyyHmsMessageService extends HmsMessageService {
 
 
     private void refreshedTokenToServer(String token) {
-        Log.i(TAG, "发送华为推送token到服务器." + token);
+        Log.i(TAG, "保存华为推送token " + token);
         SharedPreferences.Editor editor = MySharedPreferences.getSharedPreferences().edit();
         editor.putString("token", token);
         editor.apply();

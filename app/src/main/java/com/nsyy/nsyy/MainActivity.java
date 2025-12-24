@@ -1,5 +1,6 @@
 package com.nsyy.nsyy;
 
+import com.hihonor.push.sdk.HonorPushClient;
 import com.nsyy.Nsyy.R;
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -251,7 +252,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // === 最后加载页面 ===
         loadView();
 
-        setAutoInitEnabled(false);
+        // 初始化消息推送
+        initPush();
     }
 
     private void registerPermissionReceiver() {
@@ -279,14 +281,71 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
 
-    //    https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/android-client-dev-0000001050042041
-    private void setAutoInitEnabled(final boolean isEnable) {
-        if(isEnable){
+    /**
+     * 判断当前设备是否属于指定品牌（包含常见子品牌）
+     */
+    public static boolean isBrand(String targetBrand) {
+        if (targetBrand == null) return false;
+
+        String manufacturer = Build.MANUFACTURER;
+        if (manufacturer == null) return false; // 极少数情况防护
+
+        String upperManufacturer = manufacturer.toUpperCase(Locale.ROOT);
+
+        Log.d("Device", "当前设备手机厂商是 " + Build.MANUFACTURER + " 手机型号是 " + Build.MODEL + " 手机品牌是 " + Build.BRAND);
+
+        // 根据目标品牌返回匹配结果
+        switch (targetBrand.toLowerCase(Locale.ROOT)) {
+            case "xiaomi": // 小米及其子品牌
+                return upperManufacturer.contains("XIAOMI") ||
+                        upperManufacturer.contains("REDMI") ||
+                        upperManufacturer.contains("POCO") ||
+                        upperManufacturer.contains("BLACKSHARK"); // 黑鲨
+
+            case "huawei": // 华为及荣耀（荣耀已独立，但部分老设备仍显示 HUAWEI）
+                return upperManufacturer.contains("HUAWEI") ;
+
+            case "honor": // 荣耀
+                return upperManufacturer.contains("HONOR");
+
+            case "vivo":
+                return upperManufacturer.contains("VIVO") ||
+                        upperManufacturer.contains("IQOO"); // iQOO 是 vivo 子品牌
+
+            case "oppo":
+                return upperManufacturer.contains("OPPO") ||
+                        upperManufacturer.contains("REALME") ||
+                        upperManufacturer.contains("ONEPLUS"); // 一加属于 OPPO 体系
+
+            default:
+                // 如果想支持其他品牌，可扩展
+                return upperManufacturer.contains(targetBrand.toUpperCase(Locale.ROOT));
+        }
+    }
+
+    private void initPush(){
+        if (isBrand("xiaomi")) {
+            Log.d("Device", "这是小米/红米/POCO/黑鲨设备");
+        } else if (isBrand("huawei")) {
+            Log.d("Device", "这是华为设备");
+            // https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/android-client-dev-0000001050042041
             // 设置自动初始化
             HmsMessaging.getInstance(this).setAutoInitEnabled(true);
+        } else if (isBrand("honor")) {
+            Log.d("Device", "这是荣耀设备");
+            //  https://developer.honor.com/cn/docs/11002/guides/sdk-base-api
+            boolean isSupport = HonorPushClient.getInstance().checkSupportHonorPush(getApplicationContext());
+            if (isSupport) {
+                HonorPushClient.getInstance().init(getApplicationContext(), true);
+            } else {
+                Toast.makeText(MainActivity.this, "当前系统不支持消息推送", Toast.LENGTH_SHORT).show();
+            }
+        } else if (isBrand("vivo")) {
+            Log.d("Device", "这是vivo或iQOO设备");
+        } else if (isBrand("oppo")) {
+            Log.d("Device", "这是OPPO、一加或Realme设备");
         } else {
-            // 禁止自动初始化
-            HmsMessaging.getInstance(this).setAutoInitEnabled(false);
+            Toast.makeText(MainActivity.this, "当前设备不支持消息推送", Toast.LENGTH_SHORT).show();
         }
     }
 

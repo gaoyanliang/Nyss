@@ -43,6 +43,13 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
+    <!--  荣耀推送： targerSdkVersion大于等于30，需要在 AndroidManifest.xml 中添加标签，用于查找到对应的action。  -->
+    <queries>
+        <intent>
+            <action android:name="com.hihonor.push.action.BIND_PUSH_SERVICE" />
+        </intent>
+    </queries>
+
     <!--  为过审删除 android:requestLegacyExternalStorage="true"  -->
     <application
         android:name="com.nsyy.nsyy.permission.AppApplication"
@@ -77,15 +84,30 @@
             </intent-filter>
         </activity>
 
+        <!-- 华为推送配置（自动） -->
         <meta-data
             android:name="push_kit_auto_init_enabled"
             android:value="true"/>
-
         <service android:name="com.nsyy.nsyy.service.NsyyHmsMessageService" android:exported="false" android:directBootAware="true">
             <intent-filter>
                 <action android:name="com.huawei.push.action.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+
+
+        <!-- 荣耀推送配置 -->
+        <meta-data
+            android:name="com.hihonor.push.app_id"
+            android:value="104537220" />
+        <service
+            android:name="com.nsyy.nsyy.service.NsyyHonorMessageService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.hihonor.push.action.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+
 
         <service
             android:name="com.nsyy.nsyy.service.NsServerService"
