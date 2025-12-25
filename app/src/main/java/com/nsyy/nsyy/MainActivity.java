@@ -25,6 +25,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Process;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
@@ -85,6 +86,7 @@ import com.vivo.push.PushClient;
 import com.vivo.push.PushConfig;
 import com.vivo.push.listener.IPushQueryActionListener;
 import com.vivo.push.util.VivoPushException;
+import com.xiaomi.mipush.sdk.MiPushClient;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -336,6 +338,14 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private void initPush(){
         if (isBrand("xiaomi")) {
             Log.d("Device", "这是小米/红米/POCO/黑鲨设备");
+            // https://dev.mi.com/xiaomihyperos/documentation/detail?pId=1544
+            //注册push推送服务
+            if(shouldInit()) {
+                MiPushClient.registerPush(this, "2882303761520483460", "5462048325460");
+            } else {
+                Toast.makeText(MainActivity.this, "当前系统不支持消息推送", Toast.LENGTH_SHORT).show();
+            }
+
         } else if (isBrand("huawei")) {
             Log.d("Device", "这是华为设备");
             // https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/android-client-dev-0000001050042041
@@ -430,6 +440,19 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         } else {
             Toast.makeText(MainActivity.this, "当前设备不支持消息推送", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private boolean shouldInit() {
+        ActivityManager am = ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE));
+        List<ActivityManager.RunningAppProcessInfo> processInfos = am.getRunningAppProcesses();
+        String mainProcessName = getApplicationInfo().processName;
+        int myPid = Process.myPid();
+        for (ActivityManager.RunningAppProcessInfo info : processInfos) {
+            if (info.pid == myPid && mainProcessName.equals(info.processName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

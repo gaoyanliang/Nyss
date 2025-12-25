@@ -38,3 +38,6 @@
 # oppo 混淆脚本
 -keep public class * extends android.app.Service
 -keep class com.heytap.msp.** { *;}
+
+# xiaomi 混淆脚本
+ -keep class com.nsyy.nsyy.service.NsyyXiaoMiMessageReceiver {*;}
